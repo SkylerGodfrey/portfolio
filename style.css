@@ -1,0 +1,156 @@
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  line-height: 1.6;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+.container {
+  width: 80%;
+  margin: 0 auto;
+  max-width: 1200px;
+}
+
+h1, h2, h3 {
+  color: #333;
+}
+
+a {
+  text-decoration: none;
+}
+
+ul {
+  list-style: none;
+}
+
+header {
+  background-color: #333;
+  color: #fff;
+  padding: 20px 0;
+}
+
+nav ul {
+  display: flex;
+  justify-content: center;
+}
+
+nav ul li {
+  margin: 0 20px;
+}
+
+nav ul li a {
+  color: #fff;
+  font-weight: bold;
+}
+
+.hero {
+  background-color: #00aaff;
+  color: #fff;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.hero-content h1 {
+  font-size: 3rem;
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  margin: 20px 0;
+}
+
+.hero-content .btn {
+  background-color: #fff;
+  color: #00aaff;
+  padding: 10px 20px;
+  border-radius: 5px;
+}
+
+.about, .projects, .contact {
+  padding: 60px 0;
+}
+
+.about-content {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.profile-img {
+  width: 150px;
+  border-radius: 50%;
+}
+
+.project-list {
+  display: flex;
+  gap: 30px;
+  justify-content: space-between;
+}
+
+.project-item {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 30%;
+  text-align: center;
+}
+
+.project-item img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.project-item .btn {
+  margin-top: 10px;
+  display: inline-block;
+  background-color: #00aaff;
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 5px;
+}
+
+.contact form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.contact input, .contact textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.contact textarea {
+  height: 150px;
+  resize: none;
+}
+
+.contact .btn {
+  background-color: #00aaff;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+footer {
+  background-color: #333;
+  color: #fff;
+  padding: 20px 0;
+  text-align: center;
+}
+
+footer .social-links a {
+  color: #fff;
+  margin: 0 10px;
+  font-size: 1.2rem;
+}
