@@ -2,7 +2,7 @@
   "Servers": [
     {
       "Version":"mdm-adde",
-      "BaseURL":"https://sgodfrey.jamfcloud.com/servicediscoveryenrollment/v1/userenroll"
+      "BaseURL":"https://sgodfrey.jamfcloud.com/servicediscoveryenrollment/v1/deviceenroll"
     }
   ]
 }
