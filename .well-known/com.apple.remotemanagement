@@ -1,8 +1,8 @@
 {
   "Servers": [
     {
-      "Version":"mdm-adde",
-      "BaseURL":"https://sgodfrey.jamfcloud.com/servicediscoveryenrollment/v1/deviceenroll"
+      "Version":"mdm-byod",
+      "BaseURL":"https://sgodfrey.jamfcloud.com/servicediscoveryenrollment/v1/userenroll"
     }
   ]
 }
