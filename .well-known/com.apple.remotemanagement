@@ -2,7 +2,7 @@
   "Servers": [
     {
       "Version":"mdm-byod",
-      "BaseURL":"https://sgodfrey.jamfcloud.com/servicediscoveryenrollment/v1/userenroll"
+      "BaseURL":"https://mjuarez.jamfcloud.com/servicediscoveryenrollment/v1/userenroll"
     }
   ]
 }
