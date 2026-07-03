@@ -1,0 +1,144 @@
+---
+/*
+ * Content-group markdown page — routes src/content/pages/<group>/<slug>.md
+ * to /<group>/<slug>/. Drafts get no route.
+ */
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { getContentGroup } from '../../lib/contentGroups';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('pages', (e) => !e.data.draft);
+  return entries
+    .filter((e) => getContentGroup(e.data.group)) // only enabled groups
+    .map((entry) => ({
+      params: {
+        group: entry.data.group,
+        page: entry.id.split('/').slice(1).join('/'),
+      },
+      props: { entry },
+    }));
+}
+
+const { entry } = Astro.props;
+const group = getContentGroup(entry.data.group)!;
+const { Content } = await render(entry);
+const fmt = new Intl.DateTimeFormat('en-US', { dateStyle: 'long' });
+---
+
+<Base
+  title={`${entry.data.title} — ${group.name} — Skyler Godfrey`}
+  description={entry.data.description ?? group.tagline}
+>
+  <main class="content-page">
+    <nav class="content-page__crumb" aria-label="Breadcrumb">
+      <a href={`/${group.slug}/`}>← {group.name}</a>
+    </nav>
+
+    <article>
+      <header data-accent={group.accent}>
+        <h1>{entry.data.title}</h1>
+        {
+          entry.data.date && (
+            <time datetime={entry.data.date.toISOString()}>
+              {fmt.format(entry.data.date)}
+            </time>
+          )
+        }
+      </header>
+      <div class="prose">
+        <Content />
+      </div>
+    </article>
+  </main>
+</Base>
+
+<style>
+  .content-page {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 6vw, 3.5rem) clamp(1rem, 4vw, 2rem) 4rem;
+  }
+
+  .content-page__crumb a {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--c-ink-muted);
+    text-decoration: none;
+  }
+
+  .content-page__crumb a:hover {
+    color: var(--c-ink);
+  }
+
+  article {
+    margin-top: 1.5rem;
+    background: var(--c-paper-raised);
+    border: var(--border-hair);
+    border-radius: 14px;
+    box-shadow: var(--shadow-card, 0 2px 10px rgba(30, 36, 34, 0.08));
+    padding: clamp(1.5rem, 5vw, 2.75rem);
+  }
+
+  header[data-accent='orange'] h1 { color: var(--c-orange-deep); }
+  header[data-accent='pine'] h1 { color: var(--c-pine-deep); }
+  header[data-accent='sky'] h1 { color: var(--c-sky-deep); }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 5vw, 2.6rem);
+    letter-spacing: -0.02em;
+    margin: 0 0 0.35rem;
+  }
+
+  header time {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--c-ink-muted);
+  }
+
+  .prose {
+    margin-top: 1.5rem;
+    line-height: 1.65;
+    color: var(--c-ink-soft);
+  }
+
+  .prose :global(h2) {
+    font-family: var(--font-display);
+    color: var(--c-ink);
+    font-size: 1.35rem;
+    margin: 1.6em 0 0.5em;
+  }
+
+  .prose :global(h3) {
+    font-family: var(--font-display);
+    color: var(--c-ink);
+    font-size: 1.1rem;
+    margin: 1.4em 0 0.4em;
+  }
+
+  .prose :global(a) {
+    color: var(--c-pine-deep);
+    text-underline-offset: 2px;
+  }
+
+  .prose :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--c-paper-sunken);
+    border: var(--border-hair);
+    border-radius: 4px;
+    padding: 0.08em 0.35em;
+  }
+
+  .prose :global(ul),
+  .prose :global(ol) {
+    padding-left: 1.4rem;
+  }
+
+  .prose :global(li) {
+    margin: 0.3em 0;
+  }
+</style>

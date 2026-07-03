@@ -1,0 +1,412 @@
+---
+/*
+ * DemoFrame.astro — the live-demo embed in a "card table" container.
+ *
+ * The demo sits like a card placed on a felt play mat (an inset, framed well).
+ *
+ * States:
+ *   1. demoUrl present — a lazy iframe. Its src is NOT set until the visitor
+ *      clicks "Start demo" (demos can be heavy), and it also carries
+ *      loading="lazy". A poster (looping preview clip, else a styled placeholder)
+ *      covers the stage until start. A fullscreen toggle calls requestFullscreen
+ *      on the table, with a graceful "open in new tab" fallback link.
+ *   2. demoUrl null — no live demo yet. Shows the looping preview clip if one
+ *      exists, otherwise a tasteful "demo coming soon" card, and surfaces the
+ *      GitHub link prominently.
+ */
+import Button from './Button.astro';
+
+export interface Props {
+  title: string;
+  demoUrl: string | null;
+  previewClipUrl: string | null;
+  repoUrl: string;
+}
+
+const { title, demoUrl, previewClipUrl, repoUrl } = Astro.props;
+const hasDemo = Boolean(demoUrl);
+---
+
+<section class="demo" aria-label="Project demo" data-demo-frame>
+  <div class="demo__mat">
+    <div class="demo__table" data-demo-table>
+      {
+        hasDemo ? (
+          <div class="demo__stage">
+            {/* Lazy iframe — src is only wired up on "Start demo". */}
+            <iframe
+              class="demo__iframe"
+              data-src={demoUrl}
+              title={`${title} — live demo`}
+              loading="lazy"
+              hidden
+              allow="fullscreen; autoplay"
+            />
+
+            {/* Poster / play-mat cover shown until the demo is started. */}
+            <div class="demo__poster" data-demo-poster>
+              {previewClipUrl ? (
+                <video
+                  class="demo__poster-media"
+                  src={previewClipUrl}
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                  aria-hidden="true"
+                />
+              ) : (
+                <div class="demo__poster-media demo__poster-media--placeholder" aria-hidden="true" />
+              )}
+              <div class="demo__poster-veil" aria-hidden="true" />
+              <div class="demo__poster-cta">
+                <button class="demo__start" type="button" data-demo-start>
+                  <span class="demo__start-icon" aria-hidden="true" />
+                  Start demo
+                </button>
+                <p class="demo__hint">Loads the live demo in this frame.</p>
+              </div>
+            </div>
+          </div>
+        ) : previewClipUrl ? (
+          <div class="demo__stage">
+            <video
+              class="demo__fallback-media"
+              src={previewClipUrl}
+              autoplay
+              loop
+              muted
+              playsinline
+              aria-label={`${title} preview clip`}
+            />
+            <span class="demo__badge">Preview</span>
+          </div>
+        ) : (
+          <div class="demo__stage demo__stage--soon">
+            <div class="demo__soon">
+              <span class="demo__soon-icon" aria-hidden="true">◈</span>
+              <p class="demo__soon-title">Live demo coming soon</p>
+              <p class="demo__soon-copy">
+                This project isn't wired into the demo pipeline yet. In the
+                meantime, the full source is on GitHub.
+              </p>
+            </div>
+          </div>
+        )
+      }
+    </div>
+
+    {/* Controls rail below the table. */}
+    <div class="demo__controls">
+      {
+        hasDemo ? (
+          <>
+            <button
+              class="demo__ctl"
+              type="button"
+              data-demo-fullscreen
+              aria-label="Toggle fullscreen"
+            >
+              <span aria-hidden="true">⤢</span> Fullscreen
+            </button>
+            <a
+              class="demo__ctl demo__ctl--link"
+              href={demoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open demo in new tab ↗
+            </a>
+          </>
+        ) : (
+          <Button href={repoUrl} variant="secondary" size="md">
+            View source on GitHub ↗
+          </Button>
+        )
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  function initDemoFrames() {
+    document
+      .querySelectorAll<HTMLElement>('[data-demo-frame]')
+      .forEach((frame) => {
+        if (frame.dataset.demoInit) return;
+        frame.dataset.demoInit = '1';
+
+        const iframe =
+          frame.querySelector<HTMLIFrameElement>('iframe[data-src]');
+        const table =
+          frame.querySelector<HTMLElement>('[data-demo-table]') ?? frame;
+        const poster = frame.querySelector<HTMLElement>('[data-demo-poster]');
+        const startBtn =
+          frame.querySelector<HTMLButtonElement>('[data-demo-start]');
+        const fsBtn = frame.querySelector<HTMLButtonElement>(
+          '[data-demo-fullscreen]',
+        );
+
+        startBtn?.addEventListener('click', () => {
+          if (!iframe) return;
+          const url = iframe.dataset.src;
+          if (url && !iframe.src) iframe.src = url;
+          iframe.hidden = false;
+          poster?.setAttribute('hidden', '');
+          frame.dataset.demoStarted = '1';
+          iframe.focus();
+        });
+
+        fsBtn?.addEventListener('click', () => {
+          const openTab = () => {
+            const url = iframe?.dataset.src;
+            if (url) window.open(url, '_blank', 'noopener');
+          };
+          if (document.fullscreenElement) {
+            document.exitFullscreen?.();
+            return;
+          }
+          if (typeof table.requestFullscreen === 'function') {
+            table.requestFullscreen().catch(openTab);
+          } else {
+            // Graceful fallback where the Fullscreen API is unavailable.
+            openTab();
+          }
+        });
+      });
+  }
+
+  initDemoFrames();
+  document.addEventListener('astro:page-load', initDemoFrames);
+</script>
+
+<style>
+  .demo {
+    margin-top: var(--space-md);
+  }
+
+  /* The play mat — felt-toned sunken surface the "card" rests on. */
+  .demo__mat {
+    padding: clamp(var(--space-sm), 2.5vw, var(--space-lg));
+    background: var(--c-paper-sunken);
+    border: var(--border-hair);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-inset);
+  }
+
+  /* The framed card-table well that holds the demo. */
+  .demo__table {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--c-ink);
+    border: 1.5px solid color-mix(in srgb, var(--c-ink) 55%, var(--c-pine));
+    box-shadow:
+      var(--shadow-card),
+      inset 0 0 0 1px rgb(255 255 255 / 0.04);
+  }
+  .demo__table:fullscreen {
+    border-radius: 0;
+    display: grid;
+    place-items: center;
+    background: var(--c-ink);
+  }
+
+  .demo__stage {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    width: 100%;
+  }
+  .demo__table:fullscreen .demo__stage {
+    aspect-ratio: auto;
+    width: 100%;
+    height: 100%;
+  }
+
+  .demo__iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--c-paper);
+  }
+
+  /* ---- Poster / start overlay ---- */
+  .demo__poster {
+    position: absolute;
+    inset: 0;
+  }
+  .demo__poster[hidden] {
+    display: none;
+  }
+  .demo__poster-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .demo__poster-media--placeholder {
+    background:
+      radial-gradient(120% 130% at 18% 8%, rgb(255 255 255 / 0.14), transparent 45%),
+      linear-gradient(150deg, var(--c-pine-deep), var(--c-ink));
+  }
+  .demo__poster-veil {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgb(20 24 22 / 0.72),
+      rgb(20 24 22 / 0.28) 60%,
+      rgb(20 24 22 / 0.4)
+    );
+  }
+  .demo__poster-cta {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    text-align: center;
+    padding: var(--space-md);
+  }
+
+  .demo__start {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    font-family: var(--font-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-400);
+    color: var(--c-paper);
+    padding: 0.75em 1.5em;
+    background: var(--c-orange);
+    border: 1.5px solid var(--c-orange-deep);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    box-shadow:
+      0 3px 0 var(--c-orange-deep),
+      0 8px 18px rgb(var(--shadow-color) / 0.35);
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .demo__start:hover {
+    background: color-mix(in srgb, var(--c-orange) 92%, white);
+  }
+  .demo__start:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 var(--c-orange-deep), 0 2px 6px rgb(var(--shadow-color) / 0.3);
+  }
+  .demo__start-icon {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0.42em 0 0.42em 0.7em;
+    border-color: transparent transparent transparent currentColor;
+  }
+  .demo__hint {
+    margin: 0;
+    max-width: none;
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-wide);
+    color: rgb(247 242 231 / 0.82);
+  }
+
+  /* ---- Preview-only fallback ---- */
+  .demo__fallback-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .demo__badge {
+    position: absolute;
+    top: var(--space-sm);
+    left: var(--space-sm);
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-mono);
+    text-transform: uppercase;
+    color: var(--c-paper);
+    padding: 0.3em 0.7em;
+    background: rgb(20 24 22 / 0.6);
+    border: 1px solid rgb(247 242 231 / 0.25);
+    border-radius: var(--radius-pill);
+    backdrop-filter: blur(4px);
+  }
+
+  /* ---- "Coming soon" fallback ---- */
+  .demo__stage--soon {
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(120% 130% at 82% 12%, rgb(135 188 222 / 0.12), transparent 50%),
+      linear-gradient(150deg, var(--c-pine-deep), var(--c-ink));
+  }
+  .demo__soon {
+    text-align: center;
+    padding: var(--space-lg);
+    max-width: 42ch;
+  }
+  .demo__soon-icon {
+    display: block;
+    font-size: var(--fs-700);
+    color: var(--c-sky);
+    opacity: 0.85;
+  }
+  .demo__soon-title {
+    margin-top: var(--space-2xs);
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-500);
+    color: var(--c-paper);
+    max-width: none;
+  }
+  .demo__soon-copy {
+    margin-top: var(--space-2xs);
+    margin-inline: auto;
+    font-size: var(--fs-200);
+    color: rgb(247 242 231 / 0.8);
+  }
+
+  /* ---- Controls rail ---- */
+  .demo__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+  }
+  .demo__ctl {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    font-family: var(--font-display);
+    font-weight: var(--fw-medium);
+    font-size: var(--fs-200);
+    color: var(--c-ink);
+    padding: 0.5em 0.9em;
+    background: var(--c-paper-raised);
+    border: 1.5px solid var(--c-ink);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .demo__ctl:hover {
+    background: var(--c-paper-sunken);
+    transform: translateY(-1px);
+  }
+  .demo__ctl--link {
+    color: var(--c-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .demo__start:active,
+    .demo__ctl:hover {
+      transform: none;
+    }
+  }
+</style>

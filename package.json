@@ -1,11 +1,20 @@
 {
-  "name": "nodejs",
-  "version": "1.0.0",
-  "main": "script.js",
+  "name": "portfolio",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal portfolio site for skylergodfrey.com (Astro static site).",
   "scripts": {
-    "test": "vitest"
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
   },
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.2.10",
+    "@fontsource-variable/hanken-grotesk": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "astro": "^5.13.0"
+  }
 }

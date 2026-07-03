@@ -1,0 +1,196 @@
+---
+/*
+ * Card.astro — the trading-card surface.
+ *
+ * A cream "card face" with layered soft shadows. Cards can be dealt onto the
+ * page with a slight hand-placed rotation, and (when interactive) lift with a
+ * 3D perspective tilt on hover.
+ *
+ * The tilt is pure CSS: the outer element owns `perspective`, the inner face
+ * `rotateX/rotateY` + `translateY`. Only compositor-friendly properties
+ * (transform, box-shadow, opacity) animate, so it stays on the GPU. A JS-free
+ * approximation of pointer-follow: on hover the whole face tips toward the
+ * viewer and rises; the direction can be biased per-card via `--tilt-x/-y`.
+ *
+ * Slots:
+ *   media  — optional top media region (image/video/canvas thumbnail).
+ *   default — card body content.
+ */
+export interface Props {
+  /** Hand-placed rotation in degrees applied at rest (e.g. -2 … 2). */
+  rotate?: number;
+  /** Enable the 3D hover tilt + lift. Default true. */
+  interactive?: boolean;
+  /** Accent hue drawn as a thin top "rail" on the card. */
+  accent?: 'orange' | 'pine' | 'sky' | 'none';
+  /** Render as an <a>. When set the card is a link. */
+  href?: string;
+  /** Extra classes. */
+  class?: string;
+}
+
+const {
+  rotate = 0,
+  interactive = true,
+  accent = 'none',
+  href,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const Tag = href ? 'a' : 'div';
+const hasMedia = Astro.slots.has('media');
+
+const accentVar =
+  accent === 'none' ? 'transparent' : `var(--c-${accent})`;
+---
+
+<Tag
+  href={href}
+  class:list={[
+    'card',
+    interactive && 'card--interactive',
+    hasMedia && 'card--has-media',
+    className,
+  ]}
+  style={`--card-rotate:${rotate}deg;--card-accent:${accentVar};`}
+  {...rest}
+>
+  <div class="card__face">
+    {
+      hasMedia && (
+        <div class="card__media">
+          <slot name="media" />
+        </div>
+      )
+    }
+    <div class="card__body">
+      <slot />
+    </div>
+  </div>
+</Tag>
+
+<style>
+  .card {
+    /* perspective lives on the outer element so the face tips within it */
+    perspective: 900px;
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    /* deal the card down at a slight angle */
+    transform: rotate(var(--card-rotate, 0deg));
+  }
+
+  .card__face {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--c-paper-raised);
+    border: var(--border-hair);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+    will-change: transform;
+    transition:
+      transform var(--dur-med) var(--ease-out),
+      box-shadow var(--dur-med) var(--ease-out);
+  }
+
+  /* Accent rail across the top edge of the face */
+  .card__face::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: var(--card-accent, transparent);
+    opacity: 0.9;
+    z-index: 2;
+  }
+
+  /* Soft top-light gloss that shifts on tilt — sells the paper-catching-light look */
+  .card__face::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      160deg,
+      rgb(255 255 255 / 0.5) 0%,
+      rgb(255 255 255 / 0) 32%
+    );
+    opacity: 0.55;
+    transition: opacity var(--dur-med) var(--ease-out);
+    z-index: 1;
+  }
+
+  .card__media {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: var(--c-paper-sunken);
+    border-bottom: var(--border-hair);
+    overflow: hidden;
+  }
+
+  .card__media :global(img),
+  .card__media :global(video),
+  .card__media :global(canvas) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card__body {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    padding: var(--space-md);
+  }
+
+  /* ---- Interactive tilt + lift -------------------------------- */
+  .card--interactive {
+    cursor: pointer;
+  }
+
+  .card--interactive:hover .card__face,
+  .card--interactive:focus-visible .card__face {
+    transform: translateY(-6px) rotateX(6deg) rotateY(var(--tilt-y, -5deg))
+      scale(1.015);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .card--interactive:hover .card__face::after,
+  .card--interactive:focus-visible .card__face::after {
+    opacity: 0.8;
+  }
+
+  .card--interactive:active .card__face {
+    transform: translateY(-2px) rotateX(3deg) scale(1.005);
+    transition-duration: var(--dur-fast);
+  }
+
+  /* Keep the focus ring on the tilting face, not the flat wrapper */
+  .card:focus-visible {
+    outline: none;
+  }
+  .card--interactive:focus-visible .card__face {
+    outline: 2.5px solid var(--c-focus);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card,
+    .card__face {
+      transform: none !important;
+    }
+    .card--interactive:hover .card__face,
+    .card--interactive:focus-visible .card__face {
+      transform: translateY(-3px) !important;
+      box-shadow: var(--shadow-card-hover);
+    }
+  }
+</style>

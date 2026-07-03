@@ -1,0 +1,108 @@
+---
+/*
+ * TagChip.astro — the "energy badge" tag chip.
+ *
+ * Small monospace pill for tech/topic tags. Known tag categories map to an
+ * accent hue (like a card's energy type); anything unknown falls back to a
+ * neutral ink chip. Pass an explicit `color` to override the lookup.
+ */
+export interface Props {
+  label: string;
+  /** Force a palette; otherwise inferred from the label. */
+  color?: 'orange' | 'pine' | 'sky' | 'neutral';
+  /** Render a leading dot "energy pip". Default true. */
+  pip?: boolean;
+  class?: string;
+}
+
+/* Category → hue. Keeps the grid legible: languages/runtime = pine,
+   graphics/3D/game = orange, web/platform = sky. Extend freely. */
+const TAG_COLORS: Record<string, Props['color']> = {
+  // orange — visual / interactive / game
+  '3d': 'orange',
+  game: 'orange',
+  'video-game': 'orange',
+  godot: 'orange',
+  threejs: 'orange',
+  graphics: 'orange',
+  cnc: 'orange',
+  // pine — languages / runtime / systems
+  node: 'pine',
+  javascript: 'pine',
+  typescript: 'pine',
+  python: 'pine',
+  electron: 'pine',
+  cli: 'pine',
+  // sky — web / platform / cloud
+  web: 'sky',
+  astro: 'sky',
+  magicmirror: 'sky',
+  api: 'sky',
+  terraform: 'sky',
+  portfolio: 'sky',
+};
+
+const { label, color, pip = true, class: className, ...rest } = Astro.props;
+
+const key = label.toLowerCase().replace(/\s+/g, '-');
+const resolved = color ?? TAG_COLORS[key] ?? 'neutral';
+---
+
+<span class:list={['chip', `chip--${resolved}`, className]} {...rest}>
+  {pip && <span class="chip__pip" aria-hidden="true" />}
+  <span class="chip__label">{label}</span>
+</span>
+
+<style>
+  .chip {
+    --chip-fg: var(--c-ink-soft);
+    --chip-bg: color-mix(in srgb, var(--c-ink) 6%, var(--c-paper-raised));
+    --chip-edge: color-mix(in srgb, var(--c-ink) 14%, transparent);
+    --chip-pip: var(--c-ink-muted);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.28em 0.66em;
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    font-weight: var(--fw-medium);
+    line-height: 1;
+    letter-spacing: var(--tracking-mono);
+    text-transform: uppercase;
+    color: var(--chip-fg);
+    background: var(--chip-bg);
+    border: 1px solid var(--chip-edge);
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .chip__pip {
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: var(--chip-pip);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--chip-pip) 22%, transparent);
+    flex: none;
+  }
+
+  .chip--orange {
+    --chip-fg: var(--c-orange-deep);
+    --chip-bg: var(--c-orange-tint);
+    --chip-edge: color-mix(in srgb, var(--c-orange) 30%, transparent);
+    --chip-pip: var(--c-orange);
+  }
+  .chip--pine {
+    --chip-fg: var(--c-pine-deep);
+    --chip-bg: var(--c-pine-tint);
+    --chip-edge: color-mix(in srgb, var(--c-pine) 30%, transparent);
+    --chip-pip: var(--c-pine);
+  }
+  .chip--sky {
+    --chip-fg: var(--c-sky-deep);
+    --chip-bg: var(--c-sky-tint);
+    --chip-edge: color-mix(in srgb, var(--c-sky-deep) 32%, transparent);
+    --chip-pip: var(--c-sky-deep);
+  }
+</style>

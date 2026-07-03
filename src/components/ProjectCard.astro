@@ -1,0 +1,280 @@
+---
+/*
+ * ProjectCard.astro — a portfolio project rendered as a trading card.
+ *
+ * Composes the PORT-7 Card surface: a media thumbnail up top, then title,
+ * one-line blurb and TagChip "energy" badges. Two touches give the grid a
+ * hand-dealt feel and a collectible personality:
+ *
+ *   • Deterministic placement — rotation and vertical offset are derived from
+ *     a hash of the slug (+ index), so every card sits at a stable, slightly
+ *     irregular angle that never reshuffles between renders.
+ *   • Lazy hover preview — when the project has a `previewClipUrl`, a muted,
+ *     looping <video> fades in over the thumbnail on hover/focus. Its source
+ *     is set on first interaction only (see the module script below), then it
+ *     plays; on leave it pauses and rewinds. Cards without a clip just tilt.
+ *
+ * The whole card links to /projects/{slug}/ (that page is PORT-9).
+ */
+import Card from './Card.astro';
+import TagChip from './TagChip.astro';
+import type { Project } from '../lib/types.js';
+
+export interface Props {
+  project: Project;
+  /** Position in the grid — feeds the deterministic placement hash. */
+  index: number;
+}
+
+const { project, index } = Astro.props;
+
+// --- Deterministic placement (stable per slug, never random per render) ----
+function hash(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+const seed = hash(project.slug) ^ (index * 0x9e3779b1);
+// Rotation in roughly [-2.4°, 2.4°]; offset in [-10px, 10px].
+const rotate = ((seed % 49) / 10 - 2.4).toFixed(2);
+const offsetY = ((Math.floor(seed / 49) % 21) - 10).toFixed(0);
+
+// --- Accent hue — from the first tag we recognise, else cycle by index ----
+const ACCENTS = ['orange', 'pine', 'sky'] as const;
+type Accent = (typeof ACCENTS)[number];
+const TAG_ACCENT: Record<string, Accent> = {
+  magicmirror: 'sky',
+  astro: 'sky',
+  web: 'sky',
+  api: 'sky',
+  react: 'sky',
+  '3d': 'orange',
+  game: 'orange',
+  godot: 'orange',
+  cnc: 'orange',
+  animation: 'orange',
+  pokemon: 'orange',
+  typescript: 'pine',
+  javascript: 'pine',
+  node: 'pine',
+  python: 'pine',
+  postgresql: 'pine',
+};
+const matched = project.tags
+  .map((t) => TAG_ACCENT[t.toLowerCase()])
+  .find(Boolean);
+const accent: Accent = matched ?? ACCENTS[index % ACCENTS.length];
+
+// --- One-line blurb pulled from PORTFOLIO.md (first prose line) ------------
+function firstProseLine(md: string): string {
+  for (const raw of md.split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#') || line.startsWith('-')) continue;
+    return line.replace(/[*_`]/g, '');
+  }
+  return '';
+}
+const blurb = firstProseLine(project.blurbMarkdown) || project.title;
+
+// Two-letter monogram for the placeholder art
+const monogram = project.name
+  .replace(/^MMM-/, '')
+  .replace(/[^a-zA-Z]/g, '')
+  .slice(0, 2)
+  .toUpperCase();
+
+const href = `/projects/${project.slug}/`;
+const hasPreview = Boolean(project.previewClipUrl);
+// Visible tags kept to a tidy few; the rest live on the project page.
+const visibleTags = project.tags.slice(0, 4);
+---
+
+<li
+  class="project-cell"
+  data-project-card
+  data-tags={project.tags.join(',')}
+  style={`--cell-offset:${offsetY}px;`}
+>
+  <Card href={href} rotate={Number(rotate)} accent={accent} class="project-card">
+    <div slot="media" class="thumb" data-accent={accent} data-preview={hasPreview ? '' : null}>
+      <div class="thumb__art">
+        <span class="thumb__mono">{monogram}</span>
+      </div>
+      {
+        hasPreview && (
+          <video
+            class="thumb__video"
+            data-src={project.previewClipUrl}
+            muted
+            loop
+            playsinline
+            preload="none"
+            tabindex="-1"
+            aria-hidden="true"
+          />
+        )
+      }
+      {hasPreview && <span class="thumb__badge">▶ preview</span>}
+    </div>
+
+    <h3 class="project-card__title">{project.title}</h3>
+    <p class="project-card__blurb">{blurb}</p>
+    <ul class="project-card__tags chip-row" role="list">
+      {
+        visibleTags.map((tag) => (
+          <li>
+            <TagChip label={tag} />
+          </li>
+        ))
+      }
+    </ul>
+  </Card>
+</li>
+
+<style>
+  .project-cell {
+    max-width: none;
+    /* hand-placed vertical nudge, layered on the Card's own rotation */
+    transform: translateY(var(--cell-offset, 0));
+  }
+
+  .thumb {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Placeholder art — palette wash + faint monogram, always present so the
+     card never shows an empty box before / without a preview. */
+  .thumb__art {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(130% 130% at 22% 8%, rgb(255 255 255 / 0.55), transparent 45%),
+      linear-gradient(150deg, var(--wash), var(--c-paper-sunken));
+  }
+  .thumb[data-accent='orange'] { --wash: var(--c-orange-tint); }
+  .thumb[data-accent='pine'] { --wash: var(--c-pine-tint); }
+  .thumb[data-accent='sky'] { --wash: var(--c-sky-tint); }
+
+  .thumb__mono {
+    font-family: var(--font-display);
+    font-weight: var(--fw-black);
+    font-size: clamp(2.5rem, 6vw, 3.6rem);
+    letter-spacing: var(--tracking-tight);
+    color: color-mix(in srgb, var(--c-ink) 12%, transparent);
+    user-select: none;
+  }
+
+  /* Lazy hover preview video sits above the art and fades in when active */
+  .thumb__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity var(--dur-med) var(--ease-out);
+  }
+  .thumb.is-playing .thumb__video {
+    opacity: 1;
+  }
+
+  .thumb__badge {
+    position: absolute;
+    right: var(--space-2xs);
+    bottom: var(--space-2xs);
+    padding: 0.2em 0.5em;
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-mono);
+    text-transform: uppercase;
+    color: var(--c-paper);
+    background: color-mix(in srgb, var(--c-ink) 72%, transparent);
+    border-radius: var(--radius-pill);
+    backdrop-filter: blur(2px);
+    opacity: 0.85;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  .thumb.is-playing .thumb__badge {
+    opacity: 0;
+  }
+
+  .project-card__title {
+    font-size: var(--fs-500);
+  }
+  .project-card__blurb {
+    margin-top: 0.15em;
+    color: var(--c-ink-soft);
+    font-size: var(--fs-200);
+    /* clamp to two lines so cards keep a consistent rhythm */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .project-card__tags {
+    margin-top: var(--space-xs);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-cell {
+      transform: none;
+    }
+    .thumb__video {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Lazy, muted, looping hover/focus previews.
+  //
+  // The <video> ships with no src (preload="none") — nothing is fetched until
+  // the first hover/focus, at which point we copy data-src → src exactly once.
+  // On leave/blur we pause and rewind so re-entry restarts cleanly and idle
+  // cards cost nothing.
+  function initPreviews() {
+    const cards =
+      document.querySelectorAll<HTMLElement>('[data-project-card]');
+
+    cards.forEach((card) => {
+      const thumb = card.querySelector<HTMLElement>('.thumb[data-preview]');
+      const video = thumb?.querySelector<HTMLVideoElement>('.thumb__video');
+      if (!thumb || !video) return;
+
+      let loaded = false;
+      const start = () => {
+        if (!loaded) {
+          const src = video.dataset.src;
+          if (src) video.src = src;
+          loaded = true;
+        }
+        thumb.classList.add('is-playing');
+        // play() can reject if interrupted quickly — ignore, it's harmless.
+        void video.play().catch(() => {});
+      };
+      const stop = () => {
+        thumb.classList.remove('is-playing');
+        video.pause();
+        // Rewind once metadata exists so we don't throw on an empty source.
+        if (video.readyState > 0) video.currentTime = 0;
+      };
+
+      // The Card renders as the <a>; hover + keyboard focus both trigger.
+      const trigger = card.querySelector<HTMLElement>('a') ?? card;
+      trigger.addEventListener('pointerenter', start);
+      trigger.addEventListener('pointerleave', stop);
+      trigger.addEventListener('focus', start);
+      trigger.addEventListener('blur', stop);
+    });
+  }
+
+  if (document.readyState !== 'loading') initPreviews();
+  else document.addEventListener('DOMContentLoaded', initPreviews);
+</script>

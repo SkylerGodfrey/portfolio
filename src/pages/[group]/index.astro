@@ -1,0 +1,224 @@
+---
+/*
+ * Group landing page — one per enabled content group (except "dev", which is
+ * the home page). Reuses the ProjectCard grid + TagFilter for groups that
+ * have flagged projects, lists the group's markdown pages, and shows a
+ * design-system "coming soon" card when the group is still empty.
+ */
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/Card.astro';
+import Button from '../../components/Button.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import TagFilter from '../../components/TagFilter.astro';
+import { getEnabledGroups, type ContentGroup } from '../../lib/contentGroups';
+import { getPortfolioProjects } from '../../lib/github.js';
+
+export async function getStaticPaths() {
+  return getEnabledGroups()
+    .filter((g) => g.slug !== 'dev') // dev lives at "/"
+    .map((g) => ({ params: { group: g.slug }, props: { group: g } }));
+}
+
+interface Props {
+  group: ContentGroup;
+}
+const { group } = Astro.props;
+
+const projects = (await getPortfolioProjects()).filter(
+  (p) => p.contentGroup === group.slug,
+);
+const allTags = [...new Set(projects.flatMap((p) => p.tags))].sort();
+
+const entries = (
+  await getCollection('pages', (e) => e.data.group === group.slug && !e.data.draft)
+).sort((a, b) => (b.data.date?.valueOf() ?? 0) - (a.data.date?.valueOf() ?? 0));
+
+const isEmpty = projects.length === 0 && entries.length === 0;
+const fmt = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
+---
+
+<Base title={`${group.name} — Skyler Godfrey`} description={group.tagline}>
+  <main class="group-page" data-accent={group.accent}>
+    <header class="group-page__head">
+      <p class="group-page__eyebrow">Content group</p>
+      <h1>{group.name}</h1>
+      <p class="group-page__tagline">{group.tagline}</p>
+    </header>
+
+    {
+      projects.length > 0 && (
+        <section aria-label={`${group.name} projects`}>
+          <TagFilter tags={allTags} />
+          <ul class="project-grid" role="list" data-project-grid>
+            {projects.map((project, i) => (
+              <ProjectCard project={project} index={i} />
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      entries.length > 0 && (
+        <section class="group-page__pages" aria-label={`${group.name} pages`}>
+          <h2>Pages</h2>
+          <ul role="list">
+            {entries.map((entry, i) => (
+              <li>
+                <Card
+                  href={`/${group.slug}/${entry.id.split('/').slice(1).join('/')}/`}
+                  accent={group.accent}
+                  interactive
+                  rotate={i % 2 === 0 ? -0.8 : 0.8}
+                >
+                  <div class="page-card">
+                    <h3>{entry.data.title}</h3>
+                    {entry.data.description && <p>{entry.data.description}</p>}
+                    {entry.data.date && (
+                      <time datetime={entry.data.date.toISOString()}>
+                        {fmt.format(entry.data.date)}
+                      </time>
+                    )}
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    {
+      isEmpty && (
+        <div class="group-page__empty">
+          <Card accent={group.accent} rotate={-1.2}>
+            <div class="empty-card">
+              <h2>Still shuffling the deck</h2>
+              <p>
+                Nothing in {group.name} yet — new cards get dealt here as the
+                work lands.
+              </p>
+              <Button href="/" variant="secondary">
+                Back to the table
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )
+    }
+  </main>
+</Base>
+
+<style>
+  .group-page {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 2.5rem) 4rem;
+  }
+
+  .group-page__head {
+    margin-bottom: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .group-page__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--c-ink-muted);
+    margin: 0 0 0.5rem;
+  }
+
+  .group-page[data-accent='orange'] h1 { color: var(--c-orange-deep); }
+  .group-page[data-accent='pine'] h1 { color: var(--c-pine-deep); }
+  .group-page[data-accent='sky'] h1 { color: var(--c-sky-deep); }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.02em;
+  }
+
+  .group-page__tagline {
+    color: var(--c-ink-soft);
+    font-size: 1.1rem;
+    margin: 0;
+    max-width: 42ch;
+  }
+
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: clamp(1.25rem, 3vw, 2rem);
+    padding: 0;
+    margin: 2rem 0 0;
+    list-style: none;
+  }
+
+  .group-page__pages {
+    margin-top: clamp(2rem, 5vw, 3rem);
+  }
+
+  .group-page__pages h2 {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    margin: 0 0 1rem;
+  }
+
+  .group-page__pages ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: 1.5rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .page-card {
+    padding: 1.25rem 1.4rem 1.4rem;
+  }
+
+  .page-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    margin: 0 0 0.35rem;
+  }
+
+  .page-card p {
+    color: var(--c-ink-soft);
+    font-size: 0.95rem;
+    margin: 0 0 0.6rem;
+  }
+
+  .page-card time {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--c-ink-muted);
+  }
+
+  .group-page__empty {
+    max-width: 26rem;
+    margin: clamp(2rem, 8vw, 4rem) auto 0;
+  }
+
+  .empty-card {
+    padding: 2rem 1.8rem;
+    text-align: center;
+    display: grid;
+    gap: 0.8rem;
+    justify-items: center;
+  }
+
+  .empty-card h2 {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    margin: 0;
+  }
+
+  .empty-card p {
+    color: var(--c-ink-soft);
+    margin: 0 0 0.4rem;
+  }
+</style>

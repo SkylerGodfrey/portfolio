@@ -1,0 +1,345 @@
+---
+import Base from '../layouts/Base.astro';
+import Button from '../components/Button.astro';
+import TagChip from '../components/TagChip.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import TagFilter from '../components/TagFilter.astro';
+import MountainScene from '../components/MountainScene.astro';
+import { getPortfolioProjects } from '../lib/github.js';
+
+/*
+ * Home page (PORT-8).
+ *
+ * Data comes from the PORT-11 build-time layer. Run with PORTFOLIO_FIXTURES=1
+ * until Terraform flags the real repos (the live API returns 0 before then).
+ */
+const usingFixtures = process.env.PORTFOLIO_FIXTURES === '1';
+let projects = await getPortfolioProjects();
+
+// In fixture mode, wire one clip-less project to the bundled local placeholder
+// so the hover-preview behaviour is genuinely exercised end-to-end. Production
+// data (real manifests) is never touched by this.
+if (usingFixtures) {
+  const placeholder = `${import.meta.env.BASE_URL}previews/sample-preview.webm`;
+  projects = projects.map((p) =>
+    p.previewClipUrl == null && p.slug === 'MMM-Mascot'
+      ? { ...p, previewClipUrl: placeholder }
+      : p,
+  );
+}
+
+// Union of every project tag, tidy + sorted, for the filter chip row.
+const allTags = Array.from(
+  new Set(projects.flatMap((p) => p.tags.map((t) => t.toLowerCase()))),
+).sort();
+
+const year = new Date().getFullYear();
+---
+
+<Base title="Skyler Godfrey — Developer">
+  <header class="site-header container">
+    <a class="wordmark" href="#home">
+      <span class="wordmark__mark" aria-hidden="true">SG</span>
+      <span class="wordmark__name">Skyler Godfrey</span>
+    </a>
+    <nav aria-label="Primary">
+      <ul role="list">
+        <li><a href="#projects">Work</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="https://github.com/SkylerGodfrey">GitHub</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero: layered Utah dusk skyline with parallax + hidden easter eggs -->
+    <section id="home" class="hero">
+      <MountainScene />
+      <div class="hero__inner container">
+        <p class="hero__eyebrow">Developer · Tinkerer · Utah</p>
+        <h1 class="hero__title">
+          I build playful software,<br />
+          one <span class="hero__accent">card</span> at a time.
+        </h1>
+        <p class="hero__lead">
+          Front-end developer with a workshop mindset — MagicMirror modules,
+          game demos, CNC, and the occasional over-engineered side project.
+        </p>
+        <div class="hero__actions">
+          <Button href="#projects" variant="primary" size="lg">
+            View my work
+          </Button>
+          <Button href="#about" variant="secondary" size="lg">About me</Button>
+        </div>
+        <p class="hero__hint" aria-hidden="true">
+          Look closely at the ridgeline — a few friends are hiding up there.
+        </p>
+      </div>
+    </section>
+
+    <!-- Projects: filter + hand-dealt trading-card grid -->
+    <section id="projects" class="container section">
+      <div class="section__head">
+        <h2>Selected work</h2>
+        <p class="section__lead">
+          Each project is a card. Hover one to see it move; some flip on a live
+          preview. Filter the deck by what it's made of.
+        </p>
+      </div>
+
+      <TagFilter tags={allTags} />
+
+      {
+        projects.length > 0 ? (
+          <ul class="project-grid" role="list" data-project-grid>
+            {projects.map((project, i) => (
+              <ProjectCard project={project} index={i} />
+            ))}
+          </ul>
+        ) : (
+          <p class="empty-note">
+            No projects are flagged yet — check back once the deck is dealt.
+          </p>
+        )
+      }
+    </section>
+
+    <!-- About -->
+    <section id="about" class="container section">
+      <div class="about">
+        <div>
+          <h2>About</h2>
+          <p class="section__lead">
+            I'm a software developer with a foundation in HTML, CSS, and
+            JavaScript. My focus is on how thoughtful code shapes the choices
+            people make while using it — and on making things that are a little
+            bit delightful.
+          </p>
+          <p class="about__body">
+            Off the keyboard you'll find me at a hockey rink, at the CNC
+            machine cutting something that probably didn't need to be cut, or
+            somewhere in the Utah mountains with a dog or two.
+          </p>
+        </div>
+        <ul class="chip-row about__stack" role="list" aria-label="What I work with">
+          <li><TagChip label="Astro" /></li>
+          <li><TagChip label="TypeScript" /></li>
+          <li><TagChip label="Node" /></li>
+          <li><TagChip label="Godot" /></li>
+          <li><TagChip label="3D" /></li>
+          <li><TagChip label="CNC" /></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer container">
+    <p>&copy; {year} Skyler Godfrey. Built in the workshop.</p>
+    <ul role="list">
+      <li><a href="https://github.com/SkylerGodfrey">GitHub</a></li>
+      <li><a href="https://www.linkedin.com/">LinkedIn</a></li>
+    </ul>
+  </footer>
+</Base>
+
+<style>
+  /* ---- Header ---- */
+  .site-header {
+    position: relative;
+    z-index: var(--z-raised);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-block: var(--space-md);
+  }
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    text-decoration: none;
+    color: var(--c-ink);
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+  }
+  .wordmark__mark {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    font-size: var(--fs-200);
+    color: var(--c-paper);
+    background: var(--c-pine);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transform: rotate(-4deg);
+  }
+  .site-header nav ul {
+    display: flex;
+    gap: var(--space-md);
+    padding: 0;
+    font-family: var(--font-display);
+    font-weight: var(--fw-medium);
+  }
+  .site-header nav a {
+    color: var(--c-ink-soft);
+    text-decoration: none;
+  }
+  .site-header nav a:hover {
+    color: var(--c-orange-deep);
+  }
+
+  /* ---- Hero ---- */
+  .hero {
+    position: relative;
+    /* Pull up under the transparent header so the scene fills the top */
+    margin-top: calc(-1 * (2rem + var(--space-md) * 2));
+    min-height: clamp(34rem, 82vh, 52rem);
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+  .hero__inner {
+    position: relative;
+    z-index: var(--z-raised);
+    padding-block: var(--space-2xl) var(--space-2xl);
+  }
+  .hero__eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-mono);
+    text-transform: uppercase;
+    color: var(--c-pine-deep);
+    margin-bottom: var(--space-sm);
+  }
+  .hero__title {
+    max-width: 20ch;
+    text-shadow: 0 1px 0 color-mix(in srgb, var(--c-paper) 60%, transparent);
+  }
+  .hero__accent {
+    color: var(--c-orange-deep);
+    background-image: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--c-sky) 60%, transparent) 0 0.18em,
+      transparent 0.18em
+    );
+    padding-inline: 0.05em;
+  }
+  .hero__lead {
+    margin-top: var(--space-md);
+    max-width: 46ch;
+    font-size: var(--fs-400);
+    color: var(--c-ink);
+  }
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+  }
+  .hero__hint {
+    margin-top: var(--space-lg);
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-wide);
+    color: var(--c-ink-muted);
+    max-width: none;
+  }
+
+  /* ---- Sections ---- */
+  .section {
+    padding-block: var(--space-2xl);
+  }
+  .section__head {
+    max-width: var(--content-max);
+  }
+  .section__lead {
+    margin-top: var(--space-sm);
+    max-width: 60ch;
+    font-size: var(--fs-400);
+    color: var(--c-ink-soft);
+  }
+  .section h2 {
+    position: relative;
+    display: inline-block;
+  }
+  .section h2::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: -0.4em;
+    bottom: -0.12em;
+    height: 0.16em;
+    background: var(--c-orange);
+    border-radius: var(--radius-pill);
+    opacity: 0.85;
+  }
+
+  /* ---- Chip rows ---- */
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    padding: 0;
+  }
+
+  /* ---- Project grid ---- */
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: var(--space-xl) var(--space-lg);
+    padding: 0;
+    margin-top: var(--space-xl);
+    /* room for the hand-placed vertical offsets without clipping shadows */
+    padding-block: var(--space-sm);
+  }
+
+  .empty-note {
+    margin-top: var(--space-lg);
+    color: var(--c-ink-muted);
+    font-style: italic;
+  }
+
+  /* ---- About ---- */
+  .about {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+  @media (min-width: 48rem) {
+    .about {
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      align-items: start;
+      gap: var(--space-2xl);
+    }
+  }
+  .about__body {
+    margin-top: var(--space-md);
+    max-width: 52ch;
+    color: var(--c-ink-soft);
+  }
+  .about__stack {
+    align-content: start;
+    margin-top: var(--space-md);
+  }
+
+  /* ---- Footer ---- */
+  .site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-top: var(--space-2xl);
+    padding-block: var(--space-lg);
+    border-top: var(--border-hair);
+    color: var(--c-ink-muted);
+    font-size: var(--fs-200);
+  }
+  .site-footer ul {
+    display: flex;
+    gap: var(--space-md);
+    padding: 0;
+  }
+</style>

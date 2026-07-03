@@ -1,0 +1,46 @@
+---
+// Self-hosted fonts (design system PORT-7)
+import '@fontsource-variable/bricolage-grotesque';
+import '@fontsource-variable/hanken-grotesk';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+
+// Design system: tokens first, then base styles that consume them.
+import '../styles/tokens.css';
+import '../styles/global.css';
+
+import GroupNav from '../components/GroupNav.astro';
+
+export interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Front-End Developer Portfolio',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f7f2e7" />
+    <title>{title}</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <GroupNav />
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  /* Light-only paper theme; the design system owns all visuals. */
+  :root {
+    color-scheme: light;
+  }
+</style>

@@ -1,0 +1,171 @@
+---
+/*
+ * projects/[slug].astro — per-project detail page.
+ *
+ * One statically-generated page per portfolio project (PORT-11 data layer):
+ *   - card-motif hero (title, tags, "View on GitHub")
+ *   - "What this showcases" rendered from the repo's PORTFOLIO.md
+ *   - live-demo embed in a framed "card table", or a graceful fallback
+ *   - breadcrumb back to home
+ *
+ * Build with PORTFOLIO_FIXTURES=1 so fixture projects render (the live API
+ * returns 0 projects until Terraform applies the `portfolio` topic).
+ */
+import Base from '../../layouts/Base.astro';
+import ProjectHero from '../../components/ProjectHero.astro';
+import ProjectMarkdown from '../../components/ProjectMarkdown.astro';
+import DemoFrame from '../../components/DemoFrame.astro';
+import { getPortfolioProjects } from '../../lib/github.ts';
+import type { Project } from '../../lib/types.ts';
+
+export async function getStaticPaths() {
+  const projects = await getPortfolioProjects();
+  return projects.map((project) => ({
+    params: { slug: project.slug },
+    props: { project },
+  }));
+}
+
+interface Props {
+  project: Project;
+}
+
+const { project } = Astro.props;
+
+/** Accent hue for the hero rail, inferred from the project's tags. */
+const ACCENT_BY_TAG: Record<string, 'orange' | 'pine' | 'sky'> = {
+  '3d': 'orange',
+  game: 'orange',
+  'video-game': 'orange',
+  godot: 'orange',
+  graphics: 'orange',
+  animation: 'orange',
+  node: 'pine',
+  javascript: 'pine',
+  typescript: 'pine',
+  python: 'pine',
+  postgresql: 'pine',
+  web: 'sky',
+  astro: 'sky',
+  magicmirror: 'sky',
+  api: 'sky',
+};
+const accent =
+  project.tags.map((t) => ACCENT_BY_TAG[t.toLowerCase()]).find(Boolean) ??
+  'orange';
+
+/** Plain-text excerpt from the blurb for the meta description. */
+function excerpt(markdown: string, max = 155): string {
+  const text = markdown
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/[*_`>#-]/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
+const description =
+  excerpt(project.blurbMarkdown) || `${project.title} — a project by Skyler Godfrey.`;
+const pageTitle = `${project.title} — Skyler Godfrey`;
+---
+
+<Base title={pageTitle} description={description}>
+  <div class="project-page container">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a class="crumbs__back" href="/">
+        <span aria-hidden="true">←</span> Back to all cards
+      </a>
+    </nav>
+
+    <ProjectHero
+      title={project.title}
+      slug={project.slug}
+      tags={project.tags}
+      repoUrl={project.repoUrl}
+      accent={accent}
+    />
+
+    <main class="project-body">
+      {
+        project.blurbMarkdown.trim() && (
+          <section class="showcase" aria-labelledby="showcase-heading">
+            <h2 id="showcase-heading" class="section-heading">
+              What this showcases
+            </h2>
+            <ProjectMarkdown markdown={project.blurbMarkdown} />
+          </section>
+        )
+      }
+
+      <section class="demo-section" aria-labelledby="demo-heading">
+        <h2 id="demo-heading" class="section-heading">Live demo</h2>
+        <DemoFrame
+          title={project.title}
+          demoUrl={project.demoUrl}
+          previewClipUrl={project.previewClipUrl}
+          repoUrl={project.repoUrl}
+        />
+      </section>
+    </main>
+  </div>
+</Base>
+
+<style>
+  .project-page {
+    padding-block: var(--space-lg) var(--space-3xl);
+  }
+
+  /* ---- Breadcrumb ---- */
+  .crumbs {
+    padding-top: var(--space-sm);
+  }
+  .crumbs__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    font-family: var(--font-display);
+    font-weight: var(--fw-medium);
+    font-size: var(--fs-200);
+    color: var(--c-ink-soft);
+    text-decoration: none;
+  }
+  .crumbs__back span {
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+  .crumbs__back:hover {
+    color: var(--c-orange-deep);
+  }
+  .crumbs__back:hover span {
+    transform: translateX(-3px);
+  }
+
+  /* ---- Body layout ---- */
+  .project-body {
+    display: grid;
+    gap: var(--space-2xl);
+  }
+
+  .section-heading {
+    position: relative;
+    display: inline-block;
+    margin-bottom: var(--space-sm);
+  }
+  .section-heading::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: -0.4em;
+    bottom: -0.14em;
+    height: 0.16em;
+    background: var(--c-orange);
+    border-radius: var(--radius-pill);
+    opacity: 0.85;
+  }
+
+  .showcase :global(.prose) {
+    max-width: var(--measure);
+  }
+</style>

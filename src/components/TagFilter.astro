@@ -1,0 +1,293 @@
+---
+/*
+ * TagFilter.astro — the chip row that filters the project grid.
+ *
+ * Renders one toggle button per tag (union of all project tags, passed in).
+ * Selection semantics are UNION-OF-SELECTED: a card stays visible if it has
+ * ANY of the active tags (OR), so adding a chip widens the result set. With
+ * nothing selected, everything shows. State is mirrored to the URL hash
+ * (`#tags=godot,web`) so a filtered view is shareable and survives reload.
+ *
+ * The reorder/hide is a FLIP animation (First-Last-Invert-Play) done in ~90
+ * lines of vanilla JS against the grid's `[data-project-card]` items. Under
+ * `prefers-reduced-motion` it falls back to instant show/hide.
+ *
+ * This component owns only the control row + behaviour; it locates the grid
+ * by `[data-project-grid]` so the two stay decoupled.
+ */
+import TagChip from './TagChip.astro';
+
+export interface Props {
+  tags: string[];
+}
+const { tags } = Astro.props;
+---
+
+<div class="tag-filter" data-tag-filter>
+  <div class="tag-filter__label">
+    <span class="tag-filter__title">Filter</span>
+    <button
+      type="button"
+      class="tag-filter__clear"
+      data-filter-clear
+      hidden
+    >
+      clear
+    </button>
+  </div>
+  <ul class="tag-filter__chips chip-row" role="list">
+    {
+      tags.map((tag) => (
+        <li>
+          <button
+            type="button"
+            class="tag-filter__chip"
+            data-filter-tag={tag}
+            aria-pressed="false"
+          >
+            <TagChip label={tag} />
+          </button>
+        </li>
+      ))
+    }
+  </ul>
+  <p class="tag-filter__count" data-filter-count aria-live="polite"></p>
+</div>
+
+<style>
+  .tag-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+  }
+  .tag-filter__label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2xs);
+  }
+  .tag-filter__title {
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-mono);
+    text-transform: uppercase;
+    color: var(--c-ink-muted);
+  }
+  .tag-filter__clear {
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-mono);
+    text-transform: uppercase;
+    color: var(--c-orange-deep);
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .tag-filter__chips {
+    margin-top: 0;
+  }
+
+  /* Each chip is a bare button wrapping a TagChip; reset native styling and
+     add a pressed/selected treatment + a hover lift. */
+  .tag-filter__chip {
+    display: inline-flex;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+  .tag-filter__chip :global(.chip) {
+    transition:
+      box-shadow var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out),
+      filter var(--dur-fast) var(--ease-out);
+  }
+  .tag-filter__chip:hover :global(.chip) {
+    transform: translateY(-1px);
+  }
+  .tag-filter__chip[aria-pressed='false'] :global(.chip) {
+    filter: saturate(0.55) opacity(0.72);
+  }
+  .tag-filter__chip[aria-pressed='true'] :global(.chip) {
+    box-shadow:
+      0 0 0 2px var(--c-paper),
+      0 0 0 3.5px var(--c-ink);
+  }
+  .tag-filter__chip:focus-visible {
+    outline: none;
+  }
+  .tag-filter__chip:focus-visible :global(.chip) {
+    outline: 2.5px solid var(--c-focus);
+    outline-offset: 3px;
+  }
+
+  .tag-filter__count {
+    flex-basis: 100%;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    color: var(--c-ink-muted);
+    min-height: 1em;
+  }
+</style>
+
+<script>
+  // Union-of-selected tag filtering with FLIP reorder + shareable URL hash.
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function initFilter() {
+    const root =
+      document.querySelector<HTMLElement>('[data-tag-filter]');
+    const grid =
+      document.querySelector<HTMLElement>('[data-project-grid]');
+    if (!root || !grid) return;
+
+    const chips = Array.from(
+      root.querySelectorAll<HTMLButtonElement>('[data-filter-tag]'),
+    );
+    const clearBtn =
+      root.querySelector<HTMLButtonElement>('[data-filter-clear]');
+    const countEl =
+      root.querySelector<HTMLElement>('[data-filter-count]');
+    const cards = Array.from(
+      grid.querySelectorAll<HTMLElement>('[data-project-card]'),
+    );
+
+    const selected = new Set<string>();
+
+    const readHash = () => {
+      const m = location.hash.match(/tags=([^&]+)/);
+      selected.clear();
+      if (m) {
+        decodeURIComponent(m[1])
+          .split(',')
+          .map((t) => t.trim().toLowerCase())
+          .filter(Boolean)
+          .forEach((t) => selected.add(t));
+      }
+    };
+    const writeHash = () => {
+      if (selected.size === 0) {
+        history.replaceState(null, '', location.pathname + location.search);
+      } else {
+        const val = Array.from(selected).join(',');
+        history.replaceState(null, '', `#tags=${encodeURIComponent(val)}`);
+      }
+    };
+
+    const matches = (card: HTMLElement) => {
+      if (selected.size === 0) return true;
+      const tags = (card.dataset.tags || '')
+        .split(',')
+        .map((t) => t.toLowerCase());
+      // UNION: visible if the card carries ANY selected tag.
+      return tags.some((t) => selected.has(t));
+    };
+
+    const apply = (animate: boolean) => {
+      // FLIP — First: capture current geometry of cards that are on-screen.
+      const first = new Map<HTMLElement, DOMRect>();
+      if (animate) {
+        for (const c of cards) {
+          if (c.style.display !== 'none') first.set(c, c.getBoundingClientRect());
+        }
+      }
+
+      // Mutate: toggle visibility.
+      let shown = 0;
+      for (const c of cards) {
+        const vis = matches(c);
+        c.style.display = vis ? '' : 'none';
+        if (vis) shown++;
+      }
+
+      // Last + Invert + Play for cards that stayed visible and moved.
+      if (animate && !reduce.matches) {
+        for (const c of cards) {
+          if (c.style.display === 'none') continue;
+          const prev = first.get(c);
+          const now = c.getBoundingClientRect();
+          if (prev) {
+            const dx = prev.left - now.left;
+            const dy = prev.top - now.top;
+            if (dx || dy) {
+              c.animate(
+                [
+                  { transform: `translate(${dx}px, ${dy}px)` },
+                  { transform: 'translate(0, 0)' },
+                ],
+                { duration: 320, easing: 'cubic-bezier(0.22,0.8,0.28,1)' },
+              );
+            }
+          } else {
+            // Newly revealed card — gentle fade/scale in.
+            c.animate(
+              [
+                { opacity: 0, transform: 'scale(0.96)' },
+                { opacity: 1, transform: 'scale(1)' },
+              ],
+              { duration: 260, easing: 'cubic-bezier(0.22,0.8,0.28,1)' },
+            );
+          }
+        }
+      }
+
+      if (countEl) {
+        countEl.textContent =
+          selected.size === 0
+            ? ''
+            : `Showing ${shown} of ${cards.length} projects`;
+      }
+      if (clearBtn) clearBtn.hidden = selected.size === 0;
+    };
+
+    const syncChips = () => {
+      for (const chip of chips) {
+        const tag = (chip.dataset.filterTag || '').toLowerCase();
+        chip.setAttribute(
+          'aria-pressed',
+          selected.has(tag) ? 'true' : 'false',
+        );
+      }
+    };
+
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const tag = (chip.dataset.filterTag || '').toLowerCase();
+        if (selected.has(tag)) selected.delete(tag);
+        else selected.add(tag);
+        syncChips();
+        writeHash();
+        apply(true);
+      });
+    });
+
+    clearBtn?.addEventListener('click', () => {
+      selected.clear();
+      syncChips();
+      writeHash();
+      apply(true);
+    });
+
+    // Deep-link support: honour an incoming hash, and react to back/forward.
+    window.addEventListener('hashchange', () => {
+      readHash();
+      syncChips();
+      apply(true);
+    });
+
+    readHash();
+    syncChips();
+    apply(false);
+  }
+
+  if (document.readyState !== 'loading') initFilter();
+  else document.addEventListener('DOMContentLoaded', initFilter);
+</script>

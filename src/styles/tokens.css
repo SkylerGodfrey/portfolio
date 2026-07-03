@@ -1,0 +1,171 @@
+/*
+ * Design tokens — "Everything is a Card"
+ * Warm workshop + trail-map system for skylergodfrey.com.
+ * Palette anchors from docs/overhaul-plan.md; tints/shades derived here.
+ * Consume these variables everywhere — never hard-code a raw hex in a component.
+ */
+
+:root {
+  /* ---------------------------------------------------------------
+   * Palette — anchors
+   * ------------------------------------------------------------- */
+  --c-paper: #f7f2e7; /* cream paper base            */
+  --c-ink: #1e2422; /* deep ink                    */
+  --c-orange: #e4572e; /* burnt orange (primary accent) */
+  --c-pine: #2f5d50; /* pine green                  */
+  --c-sky: #87bcde; /* sky blue                    */
+
+  /* Paper family — page vs. raised card surfaces */
+  --c-paper-sunken: #ece3d0; /* wells, insets, table felt   */
+  --c-paper: #f7f2e7;
+  --c-paper-raised: #fdf9f0; /* lifted card face            */
+  --c-paper-edge: #e7ddc8; /* hairline between paper tones */
+
+  /* Ink family — text hierarchy */
+  --c-ink: #1e2422;
+  --c-ink-soft: #3d453f; /* secondary text              */
+  --c-ink-muted: #6d746c; /* captions, meta              */
+  --c-ink-faint: #a49a86; /* placeholder, disabled ink   */
+
+  /* Burnt orange */
+  --c-orange-deep: #b8421f;
+  --c-orange: #e4572e;
+  --c-orange-tint: #fbe3d8; /* soft badge / wash           */
+
+  /* Pine green */
+  --c-pine-deep: #21463c;
+  --c-pine: #2f5d50;
+  --c-pine-tint: #dbe6e0;
+
+  /* Sky blue */
+  --c-sky-deep: #4f92bb;
+  --c-sky: #87bcde;
+  --c-sky-tint: #e2eef6;
+
+  /* Signal / semantic */
+  --c-focus: var(--c-sky-deep);
+  --c-selection: #f9d3c5; /* warm orange-tinted highlight */
+
+  /* Foreground/background aliases (make component CSS read cleanly) */
+  --c-bg: var(--c-paper);
+  --c-surface: var(--c-paper-raised);
+  --c-text: var(--c-ink);
+  --c-text-soft: var(--c-ink-soft);
+  --c-text-muted: var(--c-ink-muted);
+  --c-border: var(--c-paper-edge);
+  --c-accent: var(--c-orange);
+
+  /* ---------------------------------------------------------------
+   * Typography
+   * ------------------------------------------------------------- */
+  --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque',
+    ui-sans-serif, sans-serif;
+  --font-body: 'Hanken Grotesk Variable', 'Hanken Grotesk', ui-sans-serif,
+    system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', 'Menlo',
+    monospace;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-black: 800;
+
+  /* Fluid type scale (clamp: min / preferred / max) — major-third-ish */
+  --fs-100: 0.78rem; /* fine print, mono tags       */
+  --fs-200: 0.875rem; /* small / meta                */
+  --fs-300: 1rem; /* body base                   */
+  --fs-400: 1.125rem; /* lead body                   */
+  --fs-500: clamp(1.25rem, 1.1rem + 0.7vw, 1.6rem); /* h4 / card title */
+  --fs-600: clamp(1.55rem, 1.3rem + 1.1vw, 2.15rem); /* h3            */
+  --fs-700: clamp(1.95rem, 1.5rem + 2vw, 3rem); /* h2                */
+  --fs-800: clamp(2.6rem, 1.9rem + 3.4vw, 4.75rem); /* h1 / hero      */
+
+  --lh-tight: 1.05;
+  --lh-snug: 1.2;
+  --lh-body: 1.62;
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.02em;
+  --tracking-mono: 0.06em; /* uppercase mono tags         */
+
+  /* ---------------------------------------------------------------
+   * Spacing — 4px base, gentle geometric growth
+   * ------------------------------------------------------------- */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4.5rem;
+  --space-3xl: 7rem;
+
+  /* Layout */
+  --content-max: 72rem;
+  --measure: 42rem; /* ideal reading width         */
+
+  /* ---------------------------------------------------------------
+   * Radii — soft, slightly imperfect card corners
+   * ------------------------------------------------------------- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.4rem;
+  --radius-card: 1.15rem;
+  --radius-pill: 999px;
+
+  /* Hairline card border (kept subtle, warm) */
+  --border-hair: 1px solid var(--c-paper-edge);
+  --border-ink: 1.5px solid var(--c-ink);
+
+  /* ---------------------------------------------------------------
+   * Shadows — layered, warm-tinted (ink hue, never pure black)
+   * ------------------------------------------------------------- */
+  --shadow-color: 26 30 24; /* warm near-ink rgb triplet   */
+
+  --shadow-xs: 0 1px 2px rgb(var(--shadow-color) / 0.08);
+
+  --shadow-sm: 0 1px 2px rgb(var(--shadow-color) / 0.06),
+    0 2px 6px rgb(var(--shadow-color) / 0.07);
+
+  /* Resting trading-card stack: crisp near shadow + soft far cast */
+  --shadow-card: 0 1px 1px rgb(var(--shadow-color) / 0.05),
+    0 3px 6px rgb(var(--shadow-color) / 0.08),
+    0 10px 22px rgb(var(--shadow-color) / 0.09);
+
+  /* Lifted on hover: shadow grows and softens as the card rises */
+  --shadow-card-hover: 0 2px 4px rgb(var(--shadow-color) / 0.06),
+    0 12px 24px rgb(var(--shadow-color) / 0.12),
+    0 28px 50px rgb(var(--shadow-color) / 0.16);
+
+  /* Floating overlay elements (e.g. the 3D-card button) */
+  --shadow-float: 0 6px 14px rgb(var(--shadow-color) / 0.14),
+    0 18px 40px rgb(var(--shadow-color) / 0.2);
+
+  /* Inset well (card-table container) */
+  --shadow-inset: inset 0 1px 3px rgb(var(--shadow-color) / 0.1),
+    inset 0 0 0 1px rgb(var(--shadow-color) / 0.04);
+
+  /* ---------------------------------------------------------------
+   * Motion
+   * ------------------------------------------------------------- */
+  --dur-instant: 90ms;
+  --dur-fast: 150ms;
+  --dur-med: 280ms;
+  --dur-slow: 480ms;
+  --dur-lazy: 760ms;
+
+  --ease-out: cubic-bezier(0.22, 0.8, 0.28, 1); /* default UI easing  */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1); /* playful overshoot */
+
+  /* ---------------------------------------------------------------
+   * Elevation / stacking
+   * ------------------------------------------------------------- */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 100;
+  --z-overlay: 1000;
+  --z-float: 1100;
+}

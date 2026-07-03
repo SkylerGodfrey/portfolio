@@ -1,0 +1,243 @@
+---
+/*
+ * MountainScene.astro — the hero's hand-crafted Utah dusk skyline.
+ *
+ * A single inline SVG built from four depth layers (sky → far ridge → mid
+ * ridge → near foreground) painted in the design-system palette. Each layer
+ * carries a `data-depth`; a tiny vanilla-JS parallax loop translates them at
+ * different rates as the page scrolls, so the range gains depth without any
+ * library. `prefers-reduced-motion` short-circuits the loop entirely.
+ *
+ * Hidden in the scene are four easter eggs for the curious:
+ *   1. The "sun" is actually a hockey puck resting on the horizon.
+ *   2. A sitting dog silhouette on the mid ridge.
+ *   3. A cat (pointy ears, curled tail) perched on the near ridge.
+ *   4. One of the foreground "pines" is a CNC spiral router bit.
+ *
+ * The SVG is decorative — it's aria-hidden and the accessible hero heading
+ * lives in the page markup beside it.
+ */
+---
+
+<div class="scene" aria-hidden="true">
+  <svg
+    class="scene__svg"
+    viewBox="0 0 1200 640"
+    preserveAspectRatio="xMidYMax slice"
+    role="img"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#7fb3d6" />
+        <stop offset="42%" stop-color="#b8d3e4" />
+        <stop offset="70%" stop-color="#f4d7bd" />
+        <stop offset="100%" stop-color="#f9c9a3" />
+      </linearGradient>
+      <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#f6a463" stop-opacity="0.95" />
+        <stop offset="45%" stop-color="#ef8a4b" stop-opacity="0.5" />
+        <stop offset="100%" stop-color="#ef8a4b" stop-opacity="0" />
+      </radialGradient>
+      <linearGradient id="ridgeFar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6f9fbc" />
+        <stop offset="100%" stop-color="#89aec6" />
+      </linearGradient>
+      <linearGradient id="ridgeMid" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3d6d5f" />
+        <stop offset="100%" stop-color="#2f5d50" />
+      </linearGradient>
+      <linearGradient id="ridgeNear" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#21463c" />
+        <stop offset="100%" stop-color="#15302a" />
+      </linearGradient>
+    </defs>
+
+    <!-- Sky -->
+    <rect x="0" y="0" width="1200" height="640" fill="url(#sky)" />
+
+    <!-- Layer 0 — sun / hockey-puck + glow (drifts slowest) -->
+    <g data-depth="0.06">
+      <circle cx="880" cy="250" r="150" fill="url(#sunGlow)" />
+      <!-- Easter egg #1: the sun is a hockey puck. Squashed cylinder seen
+           at a shallow angle: dark side wall + top face + a rim highlight. -->
+      <g transform="translate(880 250)">
+        <ellipse cx="0" cy="18" rx="72" ry="20" fill="#20211f" />
+        <rect x="-72" y="-2" width="144" height="20" fill="#20211f" />
+        <ellipse cx="0" cy="-2" rx="72" ry="20" fill="#33322e" />
+        <ellipse cx="0" cy="-2" rx="72" ry="20" fill="none"
+          stroke="#4a4842" stroke-width="1.5" />
+        <ellipse cx="-22" cy="-6" rx="26" ry="7" fill="#514f47" opacity="0.7" />
+      </g>
+    </g>
+
+    <!-- Layer 1 — far ridge -->
+    <g data-depth="0.12">
+      <path
+        fill="url(#ridgeFar)"
+        d="M0 360 L120 320 L230 350 L340 300 L470 348 L590 296 L720 342
+           L860 300 L980 344 L1090 316 L1200 352 L1200 640 L0 640 Z"
+      />
+    </g>
+
+    <!-- Layer 2 — mid ridge (dog lives here) -->
+    <g data-depth="0.22">
+      <path
+        fill="url(#ridgeMid)"
+        d="M0 430 L140 386 L250 424 L360 372 L500 428 L640 380 L710 428
+           L780 392 L900 372 L1040 430 L1200 388 L1200 640 L0 640 Z"
+      />
+      <!-- Snow caps -->
+      <path fill="#e7eef2" opacity="0.85"
+        d="M360 372 L338 398 L352 392 L372 404 L384 388 Z" />
+      <path fill="#e7eef2" opacity="0.85"
+        d="M900 372 L880 398 L894 391 L912 402 L922 388 Z" />
+      <!-- Easter egg #2: sitting dog silhouette on the ridge -->
+      <g transform="translate(632 372)" fill="#24463b">
+        <path d="M0 8 q-3 -18 8 -20 q3 -1 5 2 l3 8 q6 -2 9 3 l2 12
+                 q1 6 -5 6 l-24 0 q-6 0 -6 -6 l1 -9 q0 -4 2 -4 z" />
+        <path d="M4 -12 q-5 -6 -1 -11 q4 4 4 11 z" />
+        <path d="M20 12 q7 6 3 13 q-2 -1 -5 -5 z" />
+      </g>
+    </g>
+
+    <!-- Layer 3 — near foreground (trees, cat, CNC bit) -->
+    <g data-depth="0.38">
+      <path
+        fill="url(#ridgeNear)"
+        d="M0 500 L120 470 L240 505 L380 460 L520 508 L660 468 L800 510
+           L940 466 L1080 508 L1200 476 L1200 640 L0 640 Z"
+      />
+
+      <!-- Pine stand, ink silhouettes -->
+      <g fill="#132a24">
+        <path d="M150 512 l14 -34 l14 34 z M150 500 l14 -30 l14 30 z" />
+        <path d="M245 520 l11 -26 l11 26 z" />
+        <path d="M300 516 l16 -40 l16 40 z M300 502 l16 -34 l16 34 z" />
+        <path d="M1015 516 l13 -32 l13 32 z M1015 504 l13 -28 l13 28 z" />
+        <path d="M1100 520 l10 -24 l10 24 z" />
+      </g>
+
+      <!-- Easter egg #4: a "pine" that's really a CNC spiral router bit.
+           Shank + fluted body + pointed tip, standing among the trees. -->
+      <g transform="translate(438 452)" fill="#132a24">
+        <rect x="-4" y="-2" width="8" height="14" rx="2" fill="#1c3730" />
+        <path d="M-7 12 l14 0 l0 34 q0 6 -7 12 q-7 -6 -7 -12 z" />
+        <!-- spiral flutes carved as lighter twist lines -->
+        <g stroke="#3f6f60" stroke-width="2" fill="none" stroke-linecap="round">
+          <path d="M-6 16 q12 5 12 12" />
+          <path d="M-6 26 q12 5 12 12" />
+          <path d="M-6 36 q10 4 11 9" />
+        </g>
+      </g>
+
+      <!-- Easter egg #3: cat perched on the ridge — ears + curled tail -->
+      <g transform="translate(872 466)" fill="#101f1b">
+        <path d="M0 6 l3 -8 l4 6 l4 -6 l3 8 q7 1 7 9 l0 6 q0 3 -3 3
+                 l-18 0 q-3 0 -3 -3 l0 -6 q0 -8 3 -9 z" />
+        <path d="M21 22 q9 -1 8 -10 q-4 1 -6 5 q-3 -1 -4 2 z" />
+      </g>
+    </g>
+
+    <!-- Ground wash to blend into the page -->
+    <rect x="0" y="560" width="1200" height="80" fill="#132a24" />
+  </svg>
+  <div class="scene__fade"></div>
+</div>
+
+<style>
+  .scene {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+    /* Fallback tint before the SVG paints */
+    background: linear-gradient(#7fb3d6, #f4d7bd);
+  }
+
+  .scene__svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 118%;
+    /* Give the parallax layers headroom to travel without exposing edges */
+    top: -9%;
+    display: block;
+  }
+
+  /* Each translated layer is promoted so scroll parallax stays on the GPU */
+  .scene__svg :global(g[data-depth]) {
+    will-change: transform;
+  }
+
+  /* Soft fade so the scene melts into the paper page below the hero copy */
+  .scene__fade {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 45%;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in srgb, var(--c-paper) 78%, transparent) 62%,
+      var(--c-paper)
+    );
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scene__svg :global(g[data-depth]) {
+      transform: none !important;
+      will-change: auto;
+    }
+  }
+</style>
+
+<script>
+  // Scroll parallax: translate each depth layer proportionally to scroll.
+  // Bails out entirely when the user prefers reduced motion.
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function initParallax() {
+    const scene = document.querySelector<HTMLElement>('.scene');
+    if (!scene) return;
+    const layers = Array.from(
+      scene.querySelectorAll<SVGGElement>('g[data-depth]'),
+    ).map((el) => ({ el, depth: parseFloat(el.dataset.depth || '0') }));
+    if (!layers.length) return;
+
+    let ticking = false;
+    const apply = () => {
+      ticking = false;
+      // Only meaningful while the hero is anywhere near the viewport.
+      const rect = scene.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+      const y = window.scrollY;
+      for (const { el, depth } of layers) {
+        el.style.transform = `translate3d(0, ${(y * depth).toFixed(2)}px, 0)`;
+      }
+    };
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(apply);
+    };
+
+    if (!reduce.matches) {
+      window.addEventListener('scroll', onScroll, { passive: true });
+      apply();
+    }
+    // React to a live change of the motion preference.
+    reduce.addEventListener('change', (e) => {
+      if (e.matches) {
+        window.removeEventListener('scroll', onScroll);
+        for (const { el } of layers) el.style.transform = '';
+      } else {
+        window.addEventListener('scroll', onScroll, { passive: true });
+        apply();
+      }
+    });
+  }
+
+  if (document.readyState !== 'loading') initParallax();
+  else document.addEventListener('DOMContentLoaded', initParallax);
+</script>

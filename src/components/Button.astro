@@ -1,0 +1,158 @@
+---
+/*
+ * Button.astro — action in the system's voice.
+ *
+ * Primary = burnt-orange "stamped" button with a printed-ink drop edge that
+ * compresses on press. Secondary = outlined paper chip. Ghost = quiet text
+ * link with an animated underline. Renders <a> when `href` is given, else
+ * <button>.
+ */
+export interface Props {
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  href?: string;
+  type?: 'button' | 'submit' | 'reset';
+  class?: string;
+  [key: string]: unknown;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  href,
+  type = 'button',
+  class: className,
+  ...rest
+} = Astro.props;
+
+const Tag = href ? 'a' : 'button';
+---
+
+<Tag
+  href={href}
+  type={href ? undefined : type}
+  class:list={['btn', `btn--${variant}`, `btn--${size}`, className]}
+  {...rest}
+>
+  <span class="btn__label"><slot /></span>
+</Tag>
+
+<style>
+  .btn {
+    --btn-shift: 3px; /* printed-edge depth */
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    font-family: var(--font-display);
+    font-weight: var(--fw-semibold);
+    letter-spacing: 0.005em;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-pill);
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+
+  /* Sizes */
+  .btn--sm {
+    font-size: var(--fs-200);
+    padding: 0.5em 1em;
+  }
+  .btn--md {
+    font-size: var(--fs-300);
+    padding: 0.7em 1.35em;
+  }
+  .btn--lg {
+    font-size: var(--fs-400);
+    padding: 0.85em 1.7em;
+  }
+
+  /* Primary — stamped orange with a printed-ink drop edge */
+  .btn--primary {
+    color: var(--c-paper);
+    background: var(--c-orange);
+    border-color: var(--c-orange-deep);
+    box-shadow: 0 var(--btn-shift) 0 var(--c-orange-deep),
+      0 calc(var(--btn-shift) + 4px) 12px rgb(var(--shadow-color) / 0.22);
+    transform: translateY(0);
+  }
+  .btn--primary:hover {
+    background: color-mix(in srgb, var(--c-orange) 92%, white);
+  }
+  .btn--primary:active {
+    transform: translateY(var(--btn-shift));
+    box-shadow: 0 0 0 var(--c-orange-deep),
+      0 2px 6px rgb(var(--shadow-color) / 0.2);
+  }
+
+  /* Secondary — outlined paper chip */
+  .btn--secondary {
+    color: var(--c-ink);
+    background: var(--c-paper-raised);
+    border-color: var(--c-ink);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn--secondary:hover {
+    background: var(--c-paper-sunken);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+  }
+  .btn--secondary:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* Ghost — quiet text action with an animated underline */
+  .btn--ghost {
+    color: var(--c-ink);
+    background: transparent;
+    padding-inline: 0.4em;
+    border-radius: var(--radius-sm);
+  }
+  .btn--ghost .btn__label {
+    position: relative;
+  }
+  .btn--ghost .btn__label::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.15em;
+    height: 2px;
+    background: var(--c-orange);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--dur-med) var(--ease-out);
+  }
+  .btn--ghost:hover {
+    color: var(--c-orange-deep);
+  }
+  .btn--ghost:hover .btn__label::after {
+    transform: scaleX(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn {
+      transition: background-color var(--dur-fast), color var(--dur-fast);
+    }
+    .btn:hover,
+    .btn:active {
+      transform: none;
+    }
+  }
+</style>

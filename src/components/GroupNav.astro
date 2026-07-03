@@ -1,0 +1,93 @@
+---
+/*
+ * GroupNav.astro — slim site-wide nav for content groups (Dev/Art/Soccer…).
+ * Driven entirely by src/lib/contentGroups.ts: adding a group there adds a
+ * link here. "dev" maps to the home page ("/").
+ */
+import { getEnabledGroups, groupHref } from '../lib/contentGroups';
+
+const groups = getEnabledGroups();
+const path = Astro.url.pathname;
+
+function isActive(slug: string): boolean {
+  const href = groupHref(slug);
+  if (href === '/') return path === '/' || path.startsWith('/projects/');
+  return path === href || path.startsWith(href);
+}
+---
+
+<header class="group-nav">
+  <a class="group-nav__mark" href="/">Skyler Godfrey</a>
+  <nav aria-label="Content groups">
+    <ul role="list">
+      {
+        groups.map((g) => (
+          <li>
+            <a
+              href={groupHref(g.slug)}
+              data-accent={g.accent}
+              aria-current={isActive(g.slug) ? 'page' : undefined}
+            >
+              {g.name}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</header>
+
+<style>
+  .group-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.65rem clamp(1rem, 4vw, 2.5rem);
+    background: color-mix(in srgb, var(--c-paper) 88%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: var(--border-hair);
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+  }
+
+  .group-nav__mark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--c-ink);
+    text-decoration: none;
+    letter-spacing: -0.01em;
+  }
+
+  ul {
+    display: flex;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  a:not(.group-nav__mark) {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--c-ink);
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    transition: border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+
+  a[data-accent='orange']:hover { border-color: var(--c-orange); }
+  a[data-accent='pine']:hover { border-color: var(--c-pine); }
+  a[data-accent='sky']:hover { border-color: var(--c-sky); }
+
+  a[aria-current='page'][data-accent='orange'] { background: color-mix(in srgb, var(--c-orange) 16%, transparent); border-color: var(--c-orange); }
+  a[aria-current='page'][data-accent='pine'] { background: color-mix(in srgb, var(--c-pine) 14%, transparent); border-color: var(--c-pine); }
+  a[aria-current='page'][data-accent='sky'] { background: color-mix(in srgb, var(--c-sky) 22%, transparent); border-color: var(--c-sky); }
+</style>
