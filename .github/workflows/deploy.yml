@@ -31,6 +31,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Fetch published demos
+        # Shallow-clone the public portfolio-demos storage repo into public/demos/
+        # so the built demo bundles + manifests are served same-origin at
+        # skylergodfrey.com/demos/<slug>/. Astro copies public/ into dist/ verbatim.
+        # --depth 1 keeps the storage repo's (binary-heavy) history off this runner,
+        # and public/demos/ is gitignored so nothing lands in the site repo's history.
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/portfolio-demos
+          git clone --depth 1 https://github.com/SkylerGodfrey/portfolio-demos.git /tmp/portfolio-demos
+          mkdir -p public/demos
+          rsync -a --delete \
+            --exclude='.git/' --exclude='README.md' --exclude='.github/' \
+            /tmp/portfolio-demos/ public/demos/
       - name: Build with Astro
         uses: withastro/action@v3
         # Defaults: path=".", node-version=20, package-manager auto-detected.

@@ -1,6 +1,10 @@
 # build output
 dist/
 
+# demo bundles fetched from the portfolio-demos storage repo at build time
+# (kept out of this repo's history — served same-origin from public/demos/)
+public/demos/
+
 # generated types
 .astro/
 
