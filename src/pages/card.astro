@@ -1,0 +1,94 @@
+---
+/*
+ * card.astro — PORT-19: the "Everything is a Card" concept made literal.
+ *
+ * A full-viewport Three.js scene (see src/scripts/businessCard.ts) renders
+ * a 3D business card in the site's card language. The scene container is
+ * fixed behind the sticky GroupNav so the paper background, accent washes,
+ * and grain overlay from global.css read continuously with the rest of the
+ * site. Three.js is loaded client-side only, via dynamic import, so no other
+ * page pays for it and the static build stays SSR-clean.
+ */
+import Base from '../layouts/Base.astro';
+---
+
+<Base
+  title="Business Card — Skyler Godfrey"
+  description="An interactive 3D business card — drag to flip it over."
+>
+  <main class="card-stage">
+    <h1 class="visually-hidden">Business card</h1>
+    <div
+      class="card-stage__scene"
+      data-card-scene
+      role="img"
+      aria-label="Interactive 3D business card for Skyler Godfrey. Front: Skyler Godfrey, playful software, one card at a time. Back: godfrey4763@gmail.com, github.com/SkylerGodfrey, skylergodfrey.com."
+    >
+      <!-- Static fallback: replaced visually by the canvas; shown if WebGL
+           is unavailable (the script tags the container on failure). -->
+      <div class="card-stage__fallback">
+        <p><strong>Skyler Godfrey</strong> — playful software, one card at a time.</p>
+        <p>
+          <a href="mailto:godfrey4763@gmail.com">godfrey4763@gmail.com</a> ·
+          <a href="https://github.com/SkylerGodfrey">github.com/SkylerGodfrey</a>
+        </p>
+      </div>
+    </div>
+    <p class="card-stage__hint" aria-hidden="true">
+      drag to flip · double-tap to reset
+    </p>
+  </main>
+</Base>
+
+<script>
+  const el = document.querySelector('[data-card-scene]');
+  if (el instanceof HTMLElement) {
+    // Dynamic import keeps Three.js in its own lazy chunk for this page only.
+    const { mountBusinessCard } = await import('../scripts/businessCard');
+    await mountBusinessCard(el);
+  }
+</script>
+
+<style>
+  /* Fill the viewport; the sticky GroupNav floats above (z-sticky) and its
+     translucent paper blur keeps the top edge feeling continuous. */
+  .card-stage {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .card-stage__scene {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Once the canvas mounts it covers the fallback; if WebGL init fails the
+     script sets data-webgl="unavailable" and this stays visible. */
+  .card-stage__fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: var(--space-2xs);
+    text-align: center;
+    padding: var(--space-lg);
+  }
+  .card-stage__scene:has(canvas) .card-stage__fallback {
+    display: none;
+  }
+
+  .card-stage__hint {
+    position: absolute;
+    inset-inline: 0;
+    bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
+    text-align: center;
+    pointer-events: none;
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-mono);
+    text-transform: uppercase;
+    color: var(--c-ink-muted);
+    max-width: none;
+  }
+</style>

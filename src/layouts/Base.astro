@@ -10,6 +10,7 @@ import '../styles/tokens.css';
 import '../styles/global.css';
 
 import GroupNav from '../components/GroupNav.astro';
+import BusinessCardButton from '../components/BusinessCardButton.astro';
 
 export interface Props {
   title: string;
@@ -35,6 +36,7 @@ const {
   <body>
     <GroupNav />
     <slot />
+    <BusinessCardButton />
   </body>
 </html>
 
