@@ -12,6 +12,9 @@
  *   4. Fixture fallback — when the API is unreachable or rate-limited
  */
 
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
 import type { DemoManifest, Project } from './types.js';
 import { FIXTURES } from './fixtures.js';
 
@@ -23,6 +26,9 @@ const GITHUB_USER = 'SkylerGodfrey';
 const DEMOS_BASE = 'https://skylergodfrey.com/demos';
 const GITHUB_API = 'https://api.github.com';
 const RAW_BASE = 'https://raw.githubusercontent.com';
+// Where the deploy workflow clones portfolio-demos before the build runs.
+// Reading this at build time avoids the one-deploy lag the public URL has.
+const LOCAL_DEMOS_DIR = path.join(process.cwd(), 'public', 'demos');
 
 // ---------------------------------------------------------------------------
 // Module-level cache — reset between Node processes but stable within a build
@@ -49,11 +55,22 @@ function buildHeaders(): HeadersInit {
  * Fetch the raw PORTFOLIO.md for a repo.
  * Returns an empty string — not an error — when the file is absent (404) or
  * the request fails; callers just get no blurb.
+ *
+ * When a token is present we go through the Contents API
+ * (GET /repos/<owner>/<repo>/contents/PORTFOLIO.md with the raw media type),
+ * which works for private repos the token can read. Without a token we fall
+ * back to raw.githubusercontent.com, which only serves public repos.
  */
 async function fetchPortfolioMd(repoName: string, defaultBranch: string): Promise<string> {
-  const url = `${RAW_BASE}/${GITHUB_USER}/${repoName}/${defaultBranch}/PORTFOLIO.md`;
+  const token = process.env.GITHUB_TOKEN;
+  const url = token
+    ? `${GITHUB_API}/repos/${GITHUB_USER}/${repoName}/contents/PORTFOLIO.md`
+    : `${RAW_BASE}/${GITHUB_USER}/${repoName}/${defaultBranch}/PORTFOLIO.md`;
+  const init: RequestInit = token
+    ? { headers: { ...buildHeaders(), Accept: 'application/vnd.github.raw+json' } }
+    : {};
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, init);
     if (res.status === 404) return '';
     if (!res.ok) {
       console.warn(`[github] PORTFOLIO.md for ${repoName}: HTTP ${res.status} — using empty blurb`);
@@ -69,10 +86,30 @@ async function fetchPortfolioMd(repoName: string, defaultBranch: string): Promis
 /**
  * Attempt to load the demo manifest that the CI pipeline publishes.
  * Returns null fields — not an error — when no manifest has been published yet.
+ *
+ * The deploy workflow clones portfolio-demos into public/demos/ *before* the
+ * build, so we read the manifest off the local filesystem first — that reflects
+ * the demos being deployed in THIS run, not the previous deploy (which is what
+ * the public URL still serves). We only fall back to the URL for local dev,
+ * where public/demos/ has not been populated.
  */
 async function fetchDemoManifest(
   repoName: string,
 ): Promise<{ demoUrl: string | null; previewClipUrl: string | null }> {
+  // 1. Local filesystem (build-time) — the freshly cloned demo bundle.
+  try {
+    const localPath = path.join(LOCAL_DEMOS_DIR, repoName, 'manifest.json');
+    const raw = await readFile(localPath, 'utf8');
+    const data = JSON.parse(raw) as Partial<DemoManifest>;
+    return {
+      demoUrl: data.demoUrl ?? null,
+      previewClipUrl: data.previewClipUrl ?? null,
+    };
+  } catch {
+    // ENOENT (no local clone) or parse error — try the published URL next.
+  }
+
+  // 2. Published URL fallback — one-deploy lag, but fine for local dev.
   const url = `${DEMOS_BASE}/${repoName}/manifest.json`;
   try {
     const res = await fetch(url);
@@ -98,6 +135,7 @@ interface GitHubRepo {
   html_url: string;
   default_branch: string;
   topics: string[];
+  private: boolean;
 }
 
 interface SearchResult {
@@ -147,6 +185,7 @@ async function fetchFromGitHub(): Promise<Project[]> {
         demoUrl: manifest.demoUrl,
         previewClipUrl: manifest.previewClipUrl,
         contentGroup: 'dev',
+        isPrivate: repo.private,
       };
     }),
   );

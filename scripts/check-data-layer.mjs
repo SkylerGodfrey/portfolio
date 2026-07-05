@@ -29,6 +29,7 @@ const FIXTURES = [
     demoUrl: null,
     previewClipUrl: null,
     contentGroup: 'dev',
+    isPrivate: false,
   },
   {
     slug: 'MMM-Chores',
@@ -41,6 +42,7 @@ const FIXTURES = [
     demoUrl: null,
     previewClipUrl: null,
     contentGroup: 'dev',
+    isPrivate: false,
   },
   {
     slug: 'pokemon-tcg-tracker',
@@ -53,6 +55,7 @@ const FIXTURES = [
     demoUrl: 'https://skylergodfrey.com/demos/pokemon-tcg-tracker/',
     previewClipUrl: 'https://skylergodfrey.com/demos/pokemon-tcg-tracker/preview.mp4',
     contentGroup: 'dev',
+    isPrivate: true,
   },
   {
     slug: 'MMM-Mascot',
@@ -65,6 +68,7 @@ const FIXTURES = [
     demoUrl: null,
     previewClipUrl: null,
     contentGroup: 'dev',
+    isPrivate: false,
   },
 ];
 
@@ -72,8 +76,13 @@ const FIXTURES = [
 // Helpers (mirrors src/lib/github.ts)
 // ---------------------------------------------------------------------------
 
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
 const GITHUB_USER = 'SkylerGodfrey';
 const DEMOS_BASE = 'https://skylergodfrey.com/demos';
+const GITHUB_API = 'https://api.github.com';
+const LOCAL_DEMOS_DIR = path.join(process.cwd(), 'public', 'demos');
 
 function buildHeaders() {
   const token = process.env.GITHUB_TOKEN;
@@ -87,9 +96,17 @@ function buildHeaders() {
 }
 
 async function fetchPortfolioMd(repoName, defaultBranch) {
-  const url = `https://raw.githubusercontent.com/${GITHUB_USER}/${repoName}/${defaultBranch}/PORTFOLIO.md`;
+  // With a token, go through the Contents API (works for private repos);
+  // otherwise fall back to raw.githubusercontent.com (public repos only).
+  const token = process.env.GITHUB_TOKEN;
+  const url = token
+    ? `${GITHUB_API}/repos/${GITHUB_USER}/${repoName}/contents/PORTFOLIO.md`
+    : `https://raw.githubusercontent.com/${GITHUB_USER}/${repoName}/${defaultBranch}/PORTFOLIO.md`;
+  const init = token
+    ? { headers: { ...buildHeaders(), Accept: 'application/vnd.github.raw+json' } }
+    : {};
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, init);
     if (res.status === 404) return '';
     if (!res.ok) {
       console.warn(`  [warn] PORTFOLIO.md for ${repoName}: HTTP ${res.status}`);
@@ -103,6 +120,17 @@ async function fetchPortfolioMd(repoName, defaultBranch) {
 }
 
 async function fetchDemoManifest(repoName) {
+  // Local clone first (freshest at build time), then the published URL.
+  try {
+    const localPath = path.join(LOCAL_DEMOS_DIR, repoName, 'manifest.json');
+    const data = JSON.parse(await readFile(localPath, 'utf8'));
+    return {
+      demoUrl: data.demoUrl ?? null,
+      previewClipUrl: data.previewClipUrl ?? null,
+    };
+  } catch {
+    // No local clone / parse error — fall through to the URL.
+  }
   const url = `${DEMOS_BASE}/${repoName}/manifest.json`;
   try {
     const res = await fetch(url);
@@ -152,6 +180,7 @@ async function fetchFromGitHub() {
         demoUrl: manifest.demoUrl,
         previewClipUrl: manifest.previewClipUrl,
         contentGroup: 'dev',
+        isPrivate: repo.private,
       };
     }),
   );
@@ -196,7 +225,7 @@ if (projects.length === 0) {
     console.log(`  slug          : ${p.slug}`);
     console.log(`  title         : ${p.title}`);
     console.log(`  tags          : ${p.tags.join(', ') || '(none)'}`);
-    console.log(`  repoUrl       : ${p.repoUrl}`);
+    console.log(`  repoUrl       : ${p.repoUrl}${p.isPrivate ? ' (private — link hidden)' : ''}`);
     console.log(`  demoUrl       : ${p.demoUrl ?? '(none)'}`);
     console.log(`  previewClipUrl: ${p.previewClipUrl ?? '(none)'}`);
     console.log(

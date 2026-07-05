@@ -29,6 +29,7 @@ Displays upcoming Canvas LMS assignments on a MagicMirror² smart mirror.
     demoUrl: null,
     previewClipUrl: null,
     contentGroup: 'dev',
+    isPrivate: false,
   },
   {
     slug: 'MMM-Chores',
@@ -49,6 +50,7 @@ A MagicMirror² module that displays household chore schedules and tracks comple
     demoUrl: null,
     previewClipUrl: null,
     contentGroup: 'dev',
+    isPrivate: false,
   },
   {
     slug: 'pokemon-tcg-tracker',
@@ -70,6 +72,7 @@ every card in every set ever printed.
     demoUrl: 'https://skylergodfrey.com/demos/pokemon-tcg-tracker/',
     previewClipUrl: 'https://skylergodfrey.com/demos/pokemon-tcg-tracker/preview.mp4',
     contentGroup: 'dev',
+    isPrivate: true,
   },
   {
     slug: 'MMM-Mascot',
@@ -90,5 +93,6 @@ of day and to events broadcast by other modules.
     demoUrl: null,
     previewClipUrl: null,
     contentGroup: 'dev',
+    isPrivate: false,
   },
 ];

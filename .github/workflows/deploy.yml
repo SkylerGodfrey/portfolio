@@ -51,7 +51,10 @@ jobs:
         env:
           # Passed through to the Astro build process so getPortfolioProjects()
           # can make authenticated GitHub API calls and avoid rate limits.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PORTFOLIO_READ_TOKEN is a dedicated fine-grained read-only PAT that
+          # can also see private showcase repos; when it isn't configured we
+          # fall back to the Actions token (public repos + rate-limit relief).
+          GITHUB_TOKEN: ${{ secrets.PORTFOLIO_READ_TOKEN || secrets.GITHUB_TOKEN }}
 
   deploy:
     needs: build

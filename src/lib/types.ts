@@ -39,4 +39,10 @@ export interface Project {
   previewClipUrl: string | null;
   /** Content group this project belongs to — defaults to "dev" */
   contentGroup: string;
+  /**
+   * Whether the source repo is private. Private repos are showcased via a
+   * read-only PAT, but their GitHub URL is not publicly reachable, so the
+   * "View on GitHub" link is suppressed for them.
+   */
+  isPrivate: boolean;
 }

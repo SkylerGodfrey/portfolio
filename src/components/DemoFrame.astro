@@ -21,9 +21,12 @@ export interface Props {
   demoUrl: string | null;
   previewClipUrl: string | null;
   repoUrl: string;
+  /** Private repos have no publicly reachable URL — hide the GitHub link. */
+  isPrivate?: boolean;
 }
 
-const { title, demoUrl, previewClipUrl, repoUrl } = Astro.props;
+const { title, demoUrl, previewClipUrl, repoUrl, isPrivate = false } =
+  Astro.props;
 const hasDemo = Boolean(demoUrl);
 ---
 
@@ -87,8 +90,11 @@ const hasDemo = Boolean(demoUrl);
               <span class="demo__soon-icon" aria-hidden="true">◈</span>
               <p class="demo__soon-title">Live demo coming soon</p>
               <p class="demo__soon-copy">
-                This project isn't wired into the demo pipeline yet. In the
-                meantime, the full source is on GitHub.
+                {
+                  isPrivate
+                    ? "This project isn't wired into the demo pipeline yet, and its source repo is private."
+                    : "This project isn't wired into the demo pipeline yet. In the meantime, the full source is on GitHub."
+                }
               </p>
             </div>
           </div>
@@ -118,6 +124,10 @@ const hasDemo = Boolean(demoUrl);
               Open demo in new tab ↗
             </a>
           </>
+        ) : isPrivate ? (
+          <p class="demo__private" aria-label="Source repository is private">
+            <span aria-hidden="true">🔒</span> source: private
+          </p>
         ) : (
           <Button href={repoUrl} variant="secondary" size="md">
             View source on GitHub ↗
@@ -401,6 +411,19 @@ const hasDemo = Boolean(demoUrl);
   }
   .demo__ctl--link {
     color: var(--c-ink);
+  }
+
+  /* Non-link note shown in place of the GitHub link for private repos. */
+  .demo__private {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-100);
+    letter-spacing: var(--tracking-mono);
+    text-transform: uppercase;
+    color: var(--c-ink-muted);
   }
 
   @media (prefers-reduced-motion: reduce) {

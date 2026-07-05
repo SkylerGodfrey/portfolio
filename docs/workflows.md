@@ -65,18 +65,49 @@ page.
 **Step 5. The site picks it up** on the next scheduled or manually triggered
 build. See [Workflow 6](#6-deployrebuild-mechanics).
 
-> **Private-repo caveat.** The site discovers repos via the GitHub Search API
-> using the Actions ephemeral `GITHUB_TOKEN`, which is scoped only to the
-> `portfolio` repo. Private repos in other accounts/orgs — or other private repos
-> on the same account — are **not** returned by that search. A private project
-> will not appear on the site until one of:
-> - The project repo is made **public**, or
-> - A fine-grained PAT with Contents:read on the private repo is stored as the
->   `GITHUB_TOKEN` Actions secret on the `portfolio` repo.
->
-> `Pokemon-tracker` is currently `visibility = "private"` with `portfolio = true`
-> (`repos/Pokemon-tracker/terragrunt.hcl`) and will not appear on the site until
-> one of those paths is taken.
+### Private repos (read-only PAT)
+
+The site discovers repos via the GitHub Search API. The Actions ephemeral
+`GITHUB_TOKEN` is scoped only to the `portfolio` repo, so it will **not** return
+private repos — the build logs `0 repo(s) with topic:portfolio` even though the
+`portfolio` topic is applied. To showcase private repos (e.g. the flagged `MMM-*`
+modules and `Pokemon-tracker`, all `visibility = "private"`), give the build a
+dedicated read-only PAT:
+
+**1. Create a fine-grained read-only PAT** (manual, one-time):
+
+GitHub → Settings → Developer settings → Personal access tokens →
+Fine-grained tokens → Generate new token:
+
+- **Name:** `portfolio-read`
+- **Expiration:** 90 days (rotate on expiry)
+- **Repository access:** the flagged private repos (or **All repositories** for
+  simplicity — the token is read-only either way).
+- **Permissions:** Contents: **Read-only**, Metadata: **Read-only** (auto). No
+  write scopes are needed — the build only reads.
+
+**2. Store it on the `portfolio` repo** as `PORTFOLIO_READ_TOKEN`:
+
+```bash
+gh secret set PORTFOLIO_READ_TOKEN \
+  --repo SkylerGodfrey/portfolio \
+  --body "github_pat_XXXX"
+```
+
+The build step reads `${{ secrets.PORTFOLIO_READ_TOKEN || secrets.GITHUB_TOKEN }}`
+(`.github/workflows/deploy.yml`), so it uses the PAT when present and falls back
+to the Actions token otherwise. When a token is present, `src/lib/github.ts`
+fetches `PORTFOLIO.md` through the authenticated Contents API instead of
+`raw.githubusercontent.com`, so private blurbs resolve too.
+
+**What differs for a private project on the site:**
+
+- The **"View on GitHub" link is hidden** — a private repo URL isn't publicly
+  reachable, so the project page shows a muted `source: private` note instead
+  (`ProjectHero.astro` / `DemoFrame.astro`, driven by `Project.isPrivate`).
+- **Live demos still work.** The demo pipeline runs inside the project repo, so
+  it can build and publish the bundle regardless of the repo's visibility. The
+  embed and hover preview behave exactly as for public projects.
 
 ---
 
