@@ -9,7 +9,8 @@ requires template work.
 | Piece | File | Role |
 |---|---|---|
 | Group config | `src/lib/contentGroups.ts` | The single source of truth (`CONTENT_GROUPS`) |
-| Group landing pages | `src/pages/[group]/index.astro` | One per enabled group (Dev = the home page `/`) |
+| Dev landing page (home `/`) | `src/pages/index.astro` | The home page — serves as the Dev group landing |
+| Other group landing pages | `src/pages/[group]/index.astro` | One per enabled non-Dev group (explicitly skips `slug === 'dev'`) |
 | Group content pages | `src/pages/[group]/[page].astro` | Routes markdown at `/<group>/<slug>/` |
 | Markdown content | `src/content/pages/<group>/<slug>.md` | The actual pages |
 | Collection schema | `src/content.config.ts` | Frontmatter validation |
